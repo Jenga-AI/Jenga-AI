@@ -40,7 +40,6 @@ git sc
 - Check if scripts are in PATH: `echo $PATH`
 - Ensure scripts are executable: `ls -la git-*`
 
-
 ## Usage Summary
 
 1. **Start working**: `git sc`
