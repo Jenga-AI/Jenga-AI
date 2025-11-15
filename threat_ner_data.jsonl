@@ -1,0 +1,10 @@
+{"text": "The 'Shadow Syndicate' is reportedly planning an attack in Nairobi.", "entities": [{"start": 5, "end": 21, "label": "ORGANIZATION"}, {"start": 55, "end": 62, "label": "LOCATION"}]}
+{"text": "Clashes were reported between two rival gangs in the Kibera slum.", "entities": [{"start": 49, "end": 60, "label": "LOCATION"}]}
+{"text": "Authorities seized a cache of weapons from a warehouse in Mombasa.", "entities": [{"start": 56, "end": 64, "label": "LOCATION"}]}
+{"text": "The group 'Al-Shabaab' has claimed responsibility for the incident.", "entities": [{"start": 11, "end": 21, "label": "ORGANIZATION"}]}
+{"text": "Police are investigating a series of robberies in the city of Kisumu.", "entities": [{"start": 56, "end": 63, "label": "LOCATION"}]}
+{"text": "A meeting is scheduled between President Ruto and opposition leaders.", "entities": [{"start": 34, "end": 48, "label": "PERSON"}]}
+{"text": "The Eastleigh neighborhood has been placed on high alert.", "entities": [{"start": 4, "end": 24, "label": "LOCATION"}]}
+{"text": "Interpol has issued a warning about a new phishing scam.", "entities": [{"start": 0, "end": 8, "label": "ORGANIZATION"}]}
+{"text": "The attack was carried out by a lone wolf operative.", "entities": []}
+{"text": "Several arrests were made in connection with the recent bombing in Garissa.", "entities": [{"start": 66, "end": 73, "label": "LOCATION"}]}

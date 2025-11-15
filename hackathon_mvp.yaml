@@ -1,0 +1,56 @@
+project_name: "JengaAI_Hackathon_MVP"
+
+# Define the tasks for the multi-task model
+tasks:
+  - name: "ThreatClassification"
+    type: "single_label_classification"
+    data_path: "/home/naynek/Desktop/Jenga-AI/threat_classification_data.jsonl"
+    heads:
+      - name: "threat_head"
+        num_labels: 2 # Threat, Non-Threat
+        weight: 0.5
+    label_maps:
+      threat_head: {0: "Non-Threat", 1: "Threat"}
+
+  - name: "ThreatNER"
+    type: "ner"
+    data_path: "/home/naynek/Desktop/Jenga-AI/threat_ner_data.jsonl"
+    heads:
+      - name: "ner_head"
+        num_labels: 4 # This will be updated by the data processor
+        weight: 0.5
+    label_maps:
+      ner_head: {0: "O", 1: "ORGANIZATION", 2: "LOCATION", 3: "PERSON"}
+
+# Configure the model
+model:
+  base_model: "distilbert-base-uncased" # Using a smaller model for quick training
+  dropout: 0.1
+  fusion:
+    type: "attention"
+    hidden_size: 768
+
+# Configure the tokenizer
+tokenizer:
+  max_length: 128
+  padding: "max_length"
+  truncation: true
+
+# Configure the training process
+training:
+  output_dir: "./unified_results/JengaAI_MVP"
+  learning_rate: 2.0e-5
+  batch_size: 4 # Smaller batch size for small dataset
+  num_epochs: 5 # Train for a few more epochs on this small dataset
+  weight_decay: 0.01
+  warmup_steps: 5
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_overall_f1"
+  greater_is_better: true
+  early_stopping_patience: 2
+  device: "cpu" # Setting to CPU for broader compatibility, can be changed to 'cuda'
+  logging:
+    service: "tensorboard"
+    experiment_name: "JengaAI_Hackathon_Run"
