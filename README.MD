@@ -28,6 +28,23 @@ This framework directly addresses Kenya's national priorities through four trans
 
 We pioneer attention fusion mechanisms and uncertainty-weighted multi-task learning—cutting-edge research techniques that automatically balance task importance while maintaining individual task expertise. Unlike imported Western models, JengaAI understands that "sukuma wiki" refers to both kale and economic resilience.
 
+## Project Vision & Future Roadmap
+
+**Our Vision:** To build the leading ecosystem for developing, deploying, and sharing AI solutions tailored for African languages and contexts. We aim to empower a new generation of African developers, researchers, and entrepreneurs by providing powerful, accessible tools.
+
+**Our Roadmap:** The JengaAI framework is designed to evolve. Our future plans focus on integrating Large Language Models (LLMs) to unlock new capabilities.
+
+*   **Phase 1: LLMs as "Reasoning Heads"**
+    *   **Concept:** Enhance existing tasks by replacing simple output layers with small, fine-tuned LLMs, dramatically improving their reasoning and few-shot learning capabilities.
+
+*   **Phase 2: Multi-Task Fine-Tuning of a Core LLM**
+    *   **Concept:** Adapt the framework to fine-tune a single, powerful, open-source LLM on multiple tasks at once, creating a versatile model that is an expert in specific African domains.
+
+*   **Phase 3: Jenga-AI as an Agentic Framework**
+    *   **Concept:** Evolve the multi-task model into the "brain" of an AI agent. This will enable complex workflows where one task's output (e.g., threat detection) triggers another (e.g., entity extraction), which then feeds a generative LLM to produce a summary or an alert.
+
+This roadmap transforms JengaAI from a powerful training framework into a comprehensive, end-to-end platform for building the next generation of context-aware AI in Africa.
+
 ##  Project Architecture
 
 The framework is organized as follows:
