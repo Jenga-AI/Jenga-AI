@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#about-jenga-nlp" class="md-skip">
+        <a href="#about-jenga-ai" class="md-skip">
           Skip to content
         </a>
       
@@ -912,18 +912,42 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#our-vision" class="md-nav__link">
+  <a href="#the-problem-a-gap-in-our-digital-landscape" class="md-nav__link">
     <span class="md-ellipsis">
-      Our Vision
+      The Problem: A Gap in Our Digital Landscape
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-features" class="md-nav__link">
+  <a href="#our-solution-a-unified-multi-task-framework" class="md-nav__link">
     <span class="md-ellipsis">
-      Key Features
+      Our Solution: A Unified, Multi-Task Framework
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Our Solution: A Unified, Multi-Task Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Capabilities
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#our-vision-democratizing-ai-for-national-prosperity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Our Vision: Democratizing AI for National Prosperity
     </span>
   </a>
   
@@ -956,25 +980,39 @@
   
 
 
-<h1 id="about-jenga-nlp">About Jenga-NLP</h1>
-<p>Jenga-NLP is a powerful and flexible open-source framework designed to democratize Natural Language Processing (NLP) for African languages. Our mission is to provide researchers, developers, and language enthusiasts with the tools they need to build state-of-the-art NLP models for languages that have been historically underserved in the digital world.</p>
-<h2 id="our-vision">Our Vision</h2>
-<p>We believe that language should not be a barrier to accessing and benefiting from the latest advancements in technology. Jenga-NLP aims to bridge the gap by providing a unified framework for fine-tuning and evaluating multi-task NLP models on a wide range of tasks, including:</p>
+<h1 id="about-jenga-ai">About Jenga-AI</h1>
+<p>Jenga-AI is more than a software library; it's a response to a critical challenge and a tool for empowerment. This page outlines the problem we are solving, our technical solution, and our vision for the future of AI in Africa.</p>
+<hr />
+<h2 id="the-problem-a-gap-in-our-digital-landscape">The Problem: A Gap in Our Digital Landscape</h2>
+<p>Kenya, like many African nations, faces complex security and governance challenges that are increasingly playing out in the digital sphere. These include:
+- The rapid spread of misinformation and hate speech in local languages like <strong>Swahili</strong> and <strong>Sheng</strong>.
+- The coordination of organized crime through digital channels.
+- The need to analyze public sentiment on critical policy issues.</p>
+<p>Existing AI and NLP models, which are predominantly trained on Western data, are ill-suited for this landscape. They fail to grasp the unique linguistic nuances, cultural contexts, and code-switching prevalent in Kenyan communication.</p>
+<p>Furthermore, addressing these issues requires tackling multiple problems at once—a text may contain hate speech (a classification task) while also mentioning specific actors and locations (a Named Entity Recognition task). For most local organizations, the cost and complexity of developing, training, and deploying separate, specialized AI models for each task is prohibitively high.</p>
+<p>This technological barrier prevents the widespread adoption of AI for enhancing national security and strengthening public service delivery, leaving a critical gap in our intelligence and governance capabilities.</p>
+<hr />
+<h2 id="our-solution-a-unified-multi-task-framework">Our Solution: A Unified, Multi-Task Framework</h2>
+<p>Jenga-AI directly addresses this challenge with a highly efficient, open-source, <strong>multi-task learning framework</strong>.</p>
+<p>Our solution allows a <strong>single, unified model</strong> with a shared encoder to be trained simultaneously on multiple, distinct NLP tasks. By leveraging a shared transformer architecture and innovative attention fusion mechanisms, Jenga-AI can, for instance, analyze a piece of text to <strong>concurrently</strong>:
+1.  Classify it as a potential threat.
+2.  Extract the names of involved organizations.
+3.  Categorize its relevance to a specific public policy.</p>
+<p>This approach dramatically lowers the computational and financial barriers to entry, enabling local organizations to build and deploy sophisticated, context-aware AI solutions that are tailored to the Kenyan environment.</p>
+<h3 id="key-capabilities">Key Capabilities</h3>
+<p>Jenga-AI is designed to be a versatile platform for a wide array of NLP challenges. Its adaptable, config-driven nature makes it suitable for:</p>
 <ul>
-<li>Text Classification</li>
-<li>Named Entity Recognition (NER)</li>
-<li>Question Answering</li>
-<li>And more...</li>
+<li><strong>Named Entity Recognition (NER):</strong> Identifying people, places, and organizations.</li>
+<li><strong>Text Classification:</strong> For tasks like sentiment analysis or threat detection.</li>
+<li><strong>Multi-Label Classification:</strong> Assigning multiple tags or categories to a piece of text.</li>
+<li><strong>Question Answering (QA):</strong> Building systems that can answer questions based on a context.</li>
+<li><strong>QA Quality Control (QA-QC):</strong> Evaluating the quality of question-answer pairs.</li>
+<li><strong>Translation:</strong> Fine-tuning models for machine translation between languages.</li>
+<li><strong>LLM Finetuning:</strong> Adapting large language models for specific domains or tasks.</li>
 </ul>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li><strong>Multi-Task Learning:</strong> Train a single model on multiple tasks simultaneously, leading to better performance and more efficient use of resources.</li>
-<li><strong>Config-Driven:</strong> Easily define and manage your experiments using simple and intuitive YAML configuration files.</li>
-<li><strong>Extensible:</strong> The framework is designed to be easily extended with new tasks, models, and datasets.</li>
-<li><strong>Pre-trained Models:</strong> Leverage the power of pre-trained transformer models like <code>distilbert-base-uncased</code> and adapt them to your specific needs.</li>
-<li><strong>Experiment Tracking:</strong> Integrated with MLflow and TensorBoard for easy tracking and visualization of your experiment results.</li>
-<li><strong>Attention Fusion:</strong> An optional attention fusion layer to learn task-specific representations from a shared encoder.</li>
-</ul>
+<hr />
+<h2 id="our-vision-democratizing-ai-for-national-prosperity">Our Vision: Democratizing AI for National Prosperity</h2>
+<p>Jenga-AI is not just a model; it's a <strong>force multiplier for democratizing AI-driven security and governance across Kenya</strong>. We aim to provide the tools and the knowledge necessary for African developers and researchers to solve African problems. By making advanced NLP accessible, adaptable, and affordable, we can collectively build a safer and more prosperous digital future.</p>
 
 
 
