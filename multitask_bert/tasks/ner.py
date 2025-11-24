@@ -1,28 +1,54 @@
 import torch
 import torch.nn as nn
-from typing import Dict
-from .base import BaseTask, TaskOutput
+from typing import Dict, Any, Optional # Added Optional
+from .base import BaseTask # Removed TaskOutput
 from ..core.config import TaskConfig
 
 class NERTask(BaseTask):
     """
     A task for Named Entity Recognition (token classification).
+    Adapted from the working independent NER script.
     """
-    def __init__(self, config: TaskConfig):
-        super().__init__(config)
-        # NER usually has a single head, but we build it to be consistent
+    def __init__(self, config: TaskConfig, hidden_size: int): # Added hidden_size
+        super().__init__(config, hidden_size) # Pass hidden_size to super
+        # Use the same architecture as the working script
         for head in config.heads:
-            self.heads[head.name] = nn.Linear(768, head.num_labels)
+            self.heads[head.name] = nn.Sequential(
+                nn.Dropout(0.1),
+                nn.Linear(self.hidden_size, head.num_labels) # Use self.hidden_size
+            )
+            
+        # Initialize weights properly
+        self._init_weights()
 
-    def get_forward_output(self, feature: Dict, sequence_output: torch.Tensor, **kwargs) -> TaskOutput:
+    def _init_weights(self):
+        """Initialize weights like the original BERT model"""
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                module.weight.data.normal_(mean=0.0, std=0.02)
+                if module.bias is not None:
+                    module.bias.data.zero_()
+
+    def get_forward_output(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        token_type_ids: Optional[torch.Tensor],
+        labels: Optional[Any],
+        encoder_outputs: Any,
+        **kwargs
+    ) -> Dict[str, Any]:
         """
         For NER, we use the sequence_output from the encoder.
         """
         total_loss = 0
         all_logits = {}
-        loss_fct = nn.CrossEntropyLoss()
+        
+        # Use the same loss function as working script
+        loss_fct = nn.CrossEntropyLoss(ignore_index=-100)  # CRITICAL: Add ignore_index
 
-        # Assuming one head for NER, but iterating for consistency
+        sequence_output = encoder_outputs.last_hidden_state # Get sequence_output from encoder_outputs
+
         for head_config in self.config.heads:
             head_name = head_config.name
             head_layer = self.heads[head_name]
@@ -30,21 +56,18 @@ class NERTask(BaseTask):
             logits = head_layer(sequence_output)
             all_logits[head_name] = logits
 
-            # Only calculate loss if labels are provided
-            if 'labels' in feature and feature['labels'] is not None:
-                labels = feature['labels'] # For NER, labels are a single tensor
-                
-                # Only keep active parts of the loss
-                if 'attention_mask' in feature:
-                    active_loss = feature['attention_mask'].view(-1) == 1
-                    active_logits = logits.view(-1, head_config.num_labels)
-                    active_labels = torch.where(
-                        active_loss, labels.view(-1), torch.tensor(loss_fct.ignore_index).type_as(labels)
-                    )
-                    loss = loss_fct(active_logits, active_labels)
-                else:
-                    loss = loss_fct(logits.view(-1, head_config.num_labels), labels.view(-1))
-                
-                total_loss += loss * head_config.weight
+            # Only calculate loss if labels is not None
+            if labels is not None:
+                # Reshape for loss calculation - CRITICAL FIX
+                active_loss = labels.view(-1) != -100
+                active_logits = logits.view(-1, head_config.num_labels)[active_loss]
+                active_labels = labels.view(-1)[active_loss]
 
-        return TaskOutput(loss=total_loss, logits=all_logits)
+                if active_labels.numel() > 0:
+                    loss = loss_fct(active_logits, active_labels)
+                    total_loss += loss * head_config.weight
+                else:
+                    # If no valid labels, use zero loss
+                    total_loss += torch.tensor(0.0, device=logits.device, requires_grad=True)
+
+        return {"loss": total_loss, "logits": all_logits}

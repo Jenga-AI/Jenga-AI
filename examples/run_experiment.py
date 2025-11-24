@@ -1,19 +1,19 @@
 import argparse
 import torch
-from transformers import AutoTokenizer, AutoConfig
-import dataclasses # Added import
+from transformers import AutoTokenizer, AutoConfig, AutoModel  # ADDED AutoModel
+import dataclasses
 from multitask_bert.core.config import load_experiment_config
 from multitask_bert.core.model import MultiTaskModel
 from multitask_bert.data.data_processing import DataProcessor
 from multitask_bert.training.trainer import Trainer
 from multitask_bert.tasks.base import BaseTask
-from multitask_bert.tasks.classification import SingleLabelClassificationTask, MultiLabelClassificationTask
+from multitask_bert.tasks.classification import MultiHeadSingleLabelClassificationTask, MultiLabelClassificationTask
 from multitask_bert.tasks.ner import NERTask
 
 def get_task_class(task_type: str) -> BaseTask:
     """Maps a task type string to its corresponding class."""
-    if task_type == "single_label_classification":
-        return SingleLabelClassificationTask
+    if task_type == "classification": # Changed to "classification"
+        return MultiHeadSingleLabelClassificationTask # Changed to MultiHeadSingleLabelClassificationTask
     elif task_type == "multi_label_classification":
         return MultiLabelClassificationTask
     elif task_type == "ner":
@@ -25,7 +25,6 @@ def main(config_path: str):
     """
     Main function to run a multi-task experiment from a config file.
     """
-    # torch.autograd.set_detect_anomaly(True)
     # 1. Load Config
     print("Loading experiment configuration...")
     config = load_experiment_config(config_path)
@@ -36,29 +35,34 @@ def main(config_path: str):
     # Add pad token if it doesn't exist
     if tokenizer.pad_token is None:
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        # Resize model embeddings if a new token was added
-        # This will be handled when we init the model
     config.tokenizer.pad_token_id = tokenizer.pad_token_id
-
 
     # 3. Process Data
     print("Processing data for all tasks...")
     train_datasets, eval_datasets, updated_config = DataProcessor(config, tokenizer).process()
-    config = updated_config # The processor might update num_labels, etc.
-    
-    # 4. Instantiate Tasks and Model
-    print("Instantiating tasks and model...")
-    tasks = [get_task_class(t.type)(t) for t in config.tasks]
-    
-    # Load the base model configuration
-    model_config = AutoConfig.from_pretrained(config.model.base_model)
+    config = updated_config
 
-    model = MultiTaskModel.from_pretrained(
-        config.model.base_model,
-        config=model_config, # Pass the loaded config object
+    # 4. Instantiate Tasks and Model - SIMPLIFIED APPROACH
+    print("Instantiating tasks and model...")
+    
+    # Load the base model configuration to get hidden_size
+    model_config = AutoConfig.from_pretrained(config.model.base_model)
+    hidden_size = model_config.hidden_size
+
+    tasks = [get_task_class(t.type)(config=t, hidden_size=hidden_size) for t in config.tasks] # Pass hidden_size
+    
+    # Create model with proper initialization
+    model = MultiTaskModel(
+        config=model_config,
         model_config=config.model,
-        tasks=tasks
+        task_configs=config.tasks # Pass task_configs instead of instantiated tasks
     )
+    
+    # Load pretrained weights into the encoder
+    print(f"Loading pretrained weights from: {config.model.base_model}")
+    pretrained_encoder = AutoModel.from_pretrained(config.model.base_model)
+    model.encoder = pretrained_encoder
+    
     # Resize embeddings if tokenizer was expanded
     model.resize_token_embeddings(len(tokenizer))
 

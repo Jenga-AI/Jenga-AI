@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from ..core.config import ExperimentConfig, TaskConfig
 from ..core.model import MultiTaskModel
 from ..tasks.base import BaseTask
-from ..tasks.classification import SingleLabelClassificationTask, MultiLabelClassificationTask
+from ..tasks.classification import MultiHeadSingleLabelClassificationTask, MultiLabelClassificationTask
 from ..tasks.ner import NERTask
 
 class InferenceHandler:
@@ -15,16 +15,20 @@ class InferenceHandler:
         self.config = config
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         
-        # Re-instantiate tasks from config
-        tasks = [self._get_task_class(t.type)(t) for t in config.tasks]
+        # Load model config to get hidden_size
+        model_auto_config = AutoConfig.from_pretrained(model_path)
+        hidden_size = model_auto_config.hidden_size
+
+        # Re-instantiate tasks from config, passing hidden_size
+        tasks = [self._get_task_class(t.type)(config=t, hidden_size=hidden_size) for t in config.tasks]
         
         # Load model config
-        model_config = AutoConfig.from_pretrained(model_path)
+        # model_config = AutoConfig.from_pretrained(model_path) # Already loaded above
         
         self.model = MultiTaskModel(
-            config=model_config,
+            config=model_auto_config, # Use the loaded model_auto_config
             model_config=config.model,
-            tasks=tasks
+            task_configs=config.tasks # Pass task_configs instead of instantiated tasks
         )
         self.model.eval()
         self.model.to(config.training.device)
@@ -33,8 +37,8 @@ class InferenceHandler:
 
     def _get_task_class(self, task_type: str) -> BaseTask:
         """Maps a task type string to its corresponding class."""
-        if task_type == "single_label_classification":
-            return SingleLabelClassificationTask
+        if task_type == "classification": # Changed
+            return MultiHeadSingleLabelClassificationTask # Changed
         elif task_type == "multi_label_classification":
             return MultiLabelClassificationTask
         elif task_type == "ner":
@@ -69,9 +73,9 @@ class InferenceHandler:
                 task_predictions = {}
                 for head_config in task_config.heads:
                     head_name = head_config.name
-                    logits = outputs.logits[head_name].cpu().numpy()
+                    logits = outputs["logits"][head_name].cpu().numpy()
                     
-                    if task_config.type == "single_label_classification":
+                    if task_config.type == "classification":
                         predicted_id = logits.argmax(axis=-1).item()
                         task_predictions[head_name] = predicted_id # Can map to label string if label_maps are available
                     elif task_config.type == "multi_label_classification":

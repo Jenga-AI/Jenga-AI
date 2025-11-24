@@ -1,22 +1,27 @@
 model:
   base_model: distilbert-base-uncased
   dropout: 0.1
-  fusion:
-    hidden_size: 768
-    type: attention
+  fusion: null
 project_name: JengaAI_NER_Experiment
 tasks:
-- data_path: examples/ner_data.jsonl
+- data_path: /Users/naynek/Desktop/MultiClassifier/Jenga-AI/examples/ner_synthetic_dataset_v1.jsonl
   heads:
   - name: ner_head
-    num_labels: 4
+    num_labels: 10
     weight: 1.0
   label_maps:
     ner_head:
-      0: LOC
-      1: O
-      2: ORG
-      3: PER
+      0: AGE
+      1: GENDER
+      2: INCIDENT_TYPE
+      3: LANDMARK
+      4: LOCATION
+      5: NAME
+      6: O
+      7: PERPETRATOR
+      8: PHONE_NUMBER
+      9: VICTIM
+  labels: null
   name: SwahiliNER
   type: ner
 tokenizer:

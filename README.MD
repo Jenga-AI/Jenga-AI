@@ -45,6 +45,13 @@ We pioneer attention fusion mechanisms and uncertainty-weighted multi-task learn
 
 This roadmap transforms JengaAI from a powerful training framework into a comprehensive, end-to-end platform for building the next generation of context-aware AI in Africa.
 
+*   **Phase 4: Behavioral Cloning for Agentic AI**
+    *   **Concept:** Extend the agentic framework to incorporate Behavioral Cloning, enabling the multi-task model to learn complex action sequences by observing expert demonstrations. This would involve:
+        *   **Textual Observations:** Representing environmental states or agent perceptions as textual input for the shared encoder.
+        *   **Action Prediction Heads:** Developing new task-specific heads for predicting discrete (classification) or continuous (regression) actions.
+        *   **Integration with Agentic Workflows:** Allowing the cloned behaviors to drive actions within the Jenga-AI agent, enabling it to perform tasks like navigation, interaction, or complex decision-making based on learned policies.
+    *   **Benefit:** This phase would allow JengaAI to move beyond purely analytical NLP tasks into interactive and autonomous agent capabilities, particularly useful for applications requiring automated responses or control in simulated or real-world environments, driven by natural language understanding.
+
 ##  Project Architecture
 
 The framework is organized as follows:
