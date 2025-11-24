@@ -18,6 +18,7 @@ class TaskConfig:
     type: str  # 'classification', 'ner', 'multi_label_classification'
     data_path: str
     heads: List[HeadConfig]
+    labels: Optional[List[str]] = None  # Added for multi-label tasks like QA
     label_maps: Optional[Dict[str, Dict[int, str]]] = None
 
 @dataclass

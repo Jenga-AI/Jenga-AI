@@ -132,5 +132,6 @@ def test_seq2seq_trainer_initialization(mock_training_arguments, mock_huggingfac
         train_dataset=mock_train_dataset,
         eval_dataset=mock_eval_dataset,
         tokenizer=mock_tokenizer,
+        data_collator=trainer_instance.data_collator, # Added data_collator
     )
     mock_huggingface_trainer.return_value.train.assert_called_once()

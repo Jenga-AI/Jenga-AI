@@ -9,14 +9,14 @@ import numpy as np
 from typing import List, Dict, Any
 import itertools
 import os
-import mlflow # Added import
-from torch.utils.tensorboard import SummaryWriter # Added import
+import mlflow
+from torch.utils.tensorboard import SummaryWriter
 
 from ..core.config import ExperimentConfig
 from ..core.model import MultiTaskModel
 from ..utils.metrics import (
-    compute_classification_metrics, 
-    compute_multi_label_metrics, 
+    compute_classification_metrics,
+    compute_multi_label_metrics,
     compute_ner_metrics
 )
 
@@ -45,12 +45,21 @@ def classification_collate_fn(batch: List[Dict], tokenizer: PreTrainedTokenizer)
     padded_attention_mask = pad_sequence(attention_mask, batch_first=True, padding_value=0)
 
     labels = {}
-    first_item_labels = batch[0]['labels']
-    if isinstance(first_item_labels, dict): # Multi-head case
-        for key in first_item_labels.keys():
-            labels[key] = torch.stack([item['labels'][key] for item in batch])
-    else: # Single tensor case (single-label classification)
-        labels = torch.stack([item['labels'] for item in batch])
+    # Assuming label keys are prefixed with 'labels_'
+    # Find all keys that start with 'labels_' in the first item of the batch
+    label_keys = [key for key in batch[0].keys() if key.startswith('labels_')]
+    
+    if label_keys:
+        for key in label_keys:
+            # Extract the actual head name from the label key (e.g., 'labels_sentiment_head' -> 'sentiment_head')
+            head_name = key[len('labels_'):]
+            labels[head_name] = torch.stack([item[key] for item in batch])
+    else:
+        # Fallback for single-label classification where labels might be directly under 'labels' key
+        # This case might not be needed if all classification tasks use the new 'labels_head_name' format
+        # but keeping it for robustness if there are other classification types.
+        if 'labels' in batch[0]:
+            labels = torch.stack([item['labels'] for item in batch])
 
     return {
         'input_ids': padded_input_ids,
@@ -65,18 +74,18 @@ class Trainer:
     The main trainer class for the unified multi-task framework.
     Uses task-specific dataloaders and a round-robin iterator for training.
     """
-    def __init__(self, config: ExperimentConfig, model: MultiTaskModel, tokenizer: PreTrainedTokenizer, 
+    def __init__(self, config: ExperimentConfig, model: MultiTaskModel, tokenizer: PreTrainedTokenizer,
                  train_datasets: Dict[str, Any], eval_datasets: Dict[str, Any]):
         self.config = config
         self.training_args = config.training
         self.model = model.to(self.training_args.device)
         self.tokenizer = tokenizer
-        
+
         self.task_map = {task.name: i for i, task in enumerate(config.tasks)}
-        
+
         self.train_dataloaders = self._create_dataloaders(train_datasets, is_eval=False)
         self.eval_dataloaders = self._create_dataloaders(eval_datasets, is_eval=True)
-        
+
         self.logger = None
         self._init_logger()
 
@@ -84,7 +93,7 @@ class Trainer:
         if self.training_args.logging:
             service = self.training_args.logging.service
             exp_name = self.training_args.logging.experiment_name
-            
+
             if service == "tensorboard":
                 log_dir = os.path.join(self.training_args.output_dir, "logs", exp_name)
                 self.logger = SummaryWriter(log_dir=log_dir)
@@ -92,7 +101,7 @@ class Trainer:
             elif service == "mlflow":
                 if self.training_args.logging.tracking_uri:
                     mlflow.set_tracking_uri(self.training_args.logging.tracking_uri)
-                mlflow.set_experiment(exp_name) 
+                mlflow.set_experiment(exp_name)
                 mlflow.start_run()
                 self.logger = mlflow
                 print(f"MLflow logger initialized. Experiment: '{exp_name}'")
@@ -110,13 +119,13 @@ class Trainer:
         dataloaders = {}
         for task_name, dataset in datasets.items():
             task_config = next(t for t in self.config.tasks if t.name == task_name)
-            
+
             collate_fn_to_use = None
             if task_config.type == 'ner':
                 collate_fn_to_use = lambda batch: ner_collate_fn(batch, self.tokenizer)
-            elif task_config.type == 'single_label_classification' or task_config.type == 'multi_label_classification':
+            elif task_config.type in ['classification', 'multi_label_classification']: # Added 'classification'
                 collate_fn_to_use = lambda batch: classification_collate_fn(batch, self.tokenizer)
-            
+
             dataloaders[task_name] = DataLoader(
                 dataset,
                 batch_size=self.training_args.batch_size,
@@ -133,7 +142,7 @@ class Trainer:
     def train(self):
         num_training_steps = sum(len(dl) for dl in self.train_dataloaders.values()) * self.training_args.num_epochs
         optimizer, scheduler = self._create_optimizer_and_scheduler(num_training_steps)
-        
+
         progress_bar = tqdm(total=num_training_steps, desc="Training")
         global_step = 0
 
@@ -142,9 +151,9 @@ class Trainer:
 
         for epoch in range(self.training_args.num_epochs):
             self.model.train()
-            
+
             train_iterators = {name: iter(dl) for name, dl in self.train_dataloaders.items()}
-            
+
             while train_iterators:
                 for task_name, iterator in list(train_iterators.items()):
                     try:
@@ -153,10 +162,10 @@ class Trainer:
                         del train_iterators[task_name]
                         continue
 
-                    optimizer.zero_grad() 
-                    
+                    optimizer.zero_grad()
+
                     task_id = self.task_map[task_name]
-                    
+
                     input_ids = batch['input_ids'].to(self.training_args.device)
                     attention_mask = batch['attention_mask'].to(self.training_args.device)
                     labels = batch['labels']
@@ -171,14 +180,15 @@ class Trainer:
                         task_id=task_id,
                         labels=labels
                     )
+                    loss = outputs["loss"]
 
-                    loss = outputs.loss
                     loss.backward()
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                     optimizer.step()
                     scheduler.step()
-                    
+
                     self._log_metrics({"train_loss": loss.item()}, global_step, "Train")
-                    
+
                     progress_bar.update(1)
                     progress_bar.set_postfix(loss=loss.item())
                     global_step += 1
@@ -187,7 +197,7 @@ class Trainer:
                 eval_metrics = self.evaluate()
                 self._log_metrics(eval_metrics, epoch, "Eval")
                 print(f"\nEpoch {epoch + 1} Eval Metrics: {eval_metrics}")
-                
+
                 if self.training_args.early_stopping_patience:
                     metric_to_check = eval_metrics.get(self.training_args.metric_for_best_model, None)
                     if metric_to_check is None:
@@ -197,9 +207,13 @@ class Trainer:
                            (not self.training_args.greater_is_better and metric_to_check < best_metric):
                             best_metric = metric_to_check
                             epochs_no_improve = 0
+                            # Save best model
+                            output_dir = os.path.join(self.training_args.output_dir, "best_model")
+                            self.model.save_pretrained(output_dir)
+                            self.tokenizer.save_pretrained(output_dir)
                         else:
                             epochs_no_improve += 1
-                        
+
                         if epochs_no_improve >= self.training_args.early_stopping_patience:
                             print("Early stopping triggered.")
                             break
@@ -208,18 +222,19 @@ class Trainer:
     def evaluate(self) -> Dict[str, float]:
         self.model.eval()
         all_metrics = {}
-        overall_f1_scores = []
-
+        
         for task_name, dataloader in self.eval_dataloaders.items():
             task_config = next(t for t in self.config.tasks if t.name == task_name)
-            
+
             all_preds = {head.name: [] for head in task_config.heads}
             all_labels = {head.name: [] for head in task_config.heads}
-            
+            task_total_loss = 0
+            task_num_batches = 0
+
             with torch.no_grad():
                 for batch in tqdm(dataloader, desc=f"Evaluating {task_name}"):
                     task_id = self.task_map[task_name]
-                    
+
                     input_ids = batch['input_ids'].to(self.training_args.device)
                     attention_mask = batch['attention_mask'].to(self.training_args.device)
                     labels = batch['labels']
@@ -227,55 +242,73 @@ class Trainer:
                         labels = {k: v.to(self.training_args.device) for k, v in labels.items()}
                     else:
                         labels = labels.to(self.training_args.device)
-                    
+
                     outputs = self.model(
                         input_ids=input_ids,
                         attention_mask=attention_mask,
                         task_id=task_id,
                         labels=labels
                     )
-                    
+
+                    task_total_loss += outputs["loss"].item()
+                    task_num_batches += 1
+
                     for head_config in task_config.heads:
                         head_name = head_config.name
-                        logits = outputs.logits[head_name].cpu().numpy()
+                        logits = outputs["logits"][head_name].cpu().numpy()
                         all_preds[head_name].append(logits)
-                        
+
                         if isinstance(labels, dict):
                             all_labels[head_name].append(labels[head_name].cpu().numpy())
                         else:
                             all_labels[head_name].append(labels.cpu().numpy())
 
-            task_metrics = {}
-            for head_config in task_config.heads:
-                head_name = head_config.name
-                preds_np = np.concatenate(all_preds[head_name], axis=0)
-                labels_np = np.concatenate(all_labels[head_name], axis=0)
+            # Calculate metrics for the current task after processing all batches
+            if task_num_batches > 0:
+                avg_loss = task_total_loss / task_num_batches
+                all_metrics[f"eval_{task_name}_loss"] = avg_loss
 
-                if task_config.type == 'ner':
-                    metrics = compute_ner_metrics(preds_np, labels_np, task_config.label_maps['ner_head'])
-                elif task_config.type == 'multi_label_classification':
-                    metrics = compute_multi_label_metrics(preds_np, labels_np)
-                elif task_config.type == 'single_label_classification':
-                    metrics = compute_classification_metrics(preds_np, labels_np)
-                else:
-                    metrics = {}
-                
-                for metric_name, value in metrics.items():
-                    task_metrics[f"{task_name}_{head_name}_{metric_name}"] = value
-                
-                if 'f1' in metrics:
-                    overall_f1_scores.append(metrics['f1'])
+                for head_config in task_config.heads:
+                    head_name = head_config.name
+                    
+                    if task_config.type == 'ner':
+                        # For NER, we need to keep the sequence structure, not flatten
+                        preds_sequences = []
+                        labels_sequences = []
+                        
+                        # Concatenate all batches for this head
+                        concatenated_preds = np.concatenate(all_preds[head_name], axis=0)
+                        concatenated_labels = np.concatenate(all_labels[head_name], axis=0)
 
-            all_metrics.update(task_metrics)
+                        # Iterate through each sequence in the concatenated arrays
+                        for i in range(len(concatenated_preds)):
+                            preds_sequences.append(concatenated_preds[i].argmax(axis=-1)) # Get predicted labels for each token
+                            labels_sequences.append(concatenated_labels[i])
+                        
+                        # Pass sequences to metrics function
+                        metrics = compute_ner_metrics(preds_sequences, labels_sequences, task_config.label_maps['ner_head'])
+                        
+                    else:
+                        # For other tasks, concatenate all predictions and labels
+                        preds_np = np.concatenate(all_preds[head_name], axis=0)
+                        labels_np = np.concatenate(all_labels[head_name], axis=0)
+        
+                        if task_config.type == 'multi_label_classification':
+                            metrics = compute_multi_label_metrics(preds_np, labels_np)
+                        elif task_config.type == 'classification': # Changed from 'single_label_classification'
+                            metrics = compute_classification_metrics(preds_np, labels_np)
+                        else:
+                            metrics = {}
+                    
+                    for metric_name, value in metrics.items():
+                        all_metrics[f"eval_{task_name}_{head_name}_{metric_name}"] = value
             
-        if overall_f1_scores:
-            all_metrics['eval_overall_f1'] = np.mean(overall_f1_scores)
-            if not self.training_args.greater_is_better:
-                all_metrics['eval_loss'] = -all_metrics['eval_overall_f1']
-            else:
-                all_metrics['eval_loss'] = 1 - all_metrics['eval_overall_f1']
-        else:
-            all_metrics['eval_loss'] = 0.0
+        # Calculate overall F1 if multiple tasks
+        if len(self.config.tasks) > 1:
+            f1_metrics = [m for k, m in all_metrics.items() if "f1" in k]
+            if f1_metrics:
+                overall_f1 = sum(f1_metrics) / len(f1_metrics)
+                all_metrics["eval_overall_f1"] = overall_f1
 
         return all_metrics
 
@@ -284,6 +317,6 @@ class Trainer:
             service = self.training_args.logging.service
             if service == "tensorboard":
                 self.logger.close()
-            elif service == "mlflow":
+            elif service == "mlflow" and mlflow.active_run():
                 self.logger.end_run()
             print(f"{service} logger closed.")

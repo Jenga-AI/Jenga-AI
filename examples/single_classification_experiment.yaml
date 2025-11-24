@@ -1,0 +1,31 @@
+project_name: "single_classification_test"
+model:
+  base_model: "distilbert-base-uncased"
+tokenizer:
+  max_length: 128
+  padding: "max_length"
+  truncation: true
+tasks:
+  - name: "sentiment_classification"
+    type: "classification"
+    data_path: "multitask_bert/tests/dummy_classification_data.jsonl"
+    heads:
+      - name: "sentiment_head"
+        num_labels: 3
+        weight: 1.0
+    labels: ["negative", "positive", "neutral"] # Example labels for classification
+training:
+  output_dir: "results/single_classification_test"
+  learning_rate: 2.0e-5
+  batch_size: 2
+  num_epochs: 3
+  weight_decay: 0.01
+  warmup_steps: 100
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_sentiment_classification_sentiment_head_accuracy"
+  greater_is_better: true
+  logging:
+    service: "tensorboard"
+    experiment_name: "single_classification_run"
