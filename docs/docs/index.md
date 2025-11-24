@@ -4,26 +4,30 @@
 
 Our mission is to empower developers, researchers, and organizations across the continent to build, train, and deploy state-of-the-art NLP models that are efficient, powerful, and context-aware.
 
-<div class="grid cards" markdown>
--   :material-rocket-launch:{ .lg .middle } **Train a Single Model for Multiple Tasks**
 
-    ---
 
-    Save significant computational resources and time by training one model to simultaneously perform classification, NER, question answering, and more.
+**True Multi-Task Learning**
 
--   :material-cogs:{ .lg .middle } **Simple, Config-Driven Experiments**
+---
 
-    ---
+Build a single, unified model with a shared encoder that can be trained on a diverse range of NLP tasks simultaneously, from **NER** and **QA** to **Translation** and **LLM Finetuning**.
 
-    Define and run complex training workflows with a single, easy-to-understand YAML file. No boilerplate code required.
 
--   :material-earth:{ .lg .middle } **Built for African Contexts**
+**Flexible & Reproducible**
 
-    ---
 
-    Move beyond generic Western models. Jenga-AI is designed to be fine-tuned on local languages and datasets, capturing the unique nuances of the African linguistic landscape.
+---
 
-</div>
+Leverage malleable `dataclasses` and a simple YAML configuration to design and run complex, reproducible experiments with minimal boilerplate code.
+
+
+**Built for African Contexts**
+
+
+---
+
+Move beyond generic Western models. Jenga-AI is designed to be adapted and fine-tuned on local languages and datasets, capturing the unique nuances of the African linguistic landscape.
+
 
 ## Get Started in Minutes
 
