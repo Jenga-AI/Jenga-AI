@@ -1,0 +1,74 @@
+# MLflow Central Configuration
+# This file provides default settings for MLflow tracking and model management
+
+# Tracking Configuration
+tracking:
+  # URI for MLflow tracking server
+  # Options: ./mlruns (local), http://localhost:5000 (remote server), sqlite:///mlflow.db
+  uri: ./mlruns
+  
+  # Default experiment name for the project
+  default_experiment: jenga-ai-experiments
+  
+  # Artifact storage location
+  artifact_location: ./mlruns
+
+# Server Configuration (for MLflow UI)
+server:
+  # Host address for MLflow UI
+  host: 127.0.0.1
+  
+  # Port for MLflow UI
+  port: 5000
+  
+  # Backend store URI (where run metadata is stored)
+  backend_store_uri: ./mlruns
+  
+  # Workers for the server (for production deployments)
+  workers: 1
+
+# Model Registry Configuration
+registry:
+  # Enable model registry
+  enabled: true
+  
+  # Registry store URI (can be same as backend store or separate)
+  store_uri: ./mlruns
+
+# Logging Configuration
+logging:
+  # Auto-log frameworks
+  auto_log:
+    pytorch: true
+    transformers: true
+    sklearn: false
+  
+  # Log system metrics (CPU, GPU, memory)
+  system_metrics: true
+  
+  # Metrics logging interval (in steps)
+  log_interval: 10
+
+# Experiment Defaults
+experiments:
+  # Tags to add to all runs
+  default_tags:
+    project: jenga-ai
+    framework: pytorch
+  
+  # Whether to log model artifacts by default
+  log_models: true
+  
+  # Whether to log datasets
+  log_datasets: false
+
+# Model Deployment (optional)
+deployment:
+  # Default deployment target
+  # Options: local, sagemaker, azureml, kubernetes
+  target: local
+  
+  # Model serving configuration
+  serving:
+    port: 5001
+    workers: 2

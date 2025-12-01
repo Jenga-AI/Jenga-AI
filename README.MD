@@ -88,6 +88,25 @@ multitask_bert/
     pip install -e .
     ```
 
+### MLflow Setup (Experiment Tracking)
+
+JengaAI uses MLflow for experiment tracking, model management, and versioning.
+
+1.  **Initialize MLflow:**
+    ```bash
+    python scripts/initialize_mlflow.py
+    ```
+
+2.  **Start the MLflow UI:**
+    ```bash
+    bash scripts/start_mlflow_server.sh
+    ```
+
+3.  **Access the dashboard:**
+    Open `http://localhost:5000` in your browser
+
+For detailed setup instructions, see [docs/MLFLOW_SETUP.md](docs/MLFLOW_SETUP.md)
+
 ### Quickstart
 
 Here is a conceptual example of how to use the framework to train a model on two different tasks:

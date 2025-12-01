@@ -1,0 +1,30 @@
+/home/collins/Documents/Jenga-AI/Jenga-AI/.venv/lib/python3.11/site-packages/mlflow/tracking/_tracking_service/utils.py:140: FutureWarning: Filesystem tracking backend (e.g., './mlruns') is deprecated. Please switch to a database backend (e.g., 'sqlite:///mlflow.db'). For feedback, see: https://github.com/mlflow/mlflow/issues/18534
+  return FileStore(store_uri, store_uri)
+QA Heads Configuration: {'opening': 1, 'listening': 5, 'proactiveness': 3, 'resolution': 5, 'hold': 2, 'closing': 1}
+Training examples: 3609
+Validation examples: 637
+Test examples: 750
+Epoch 1/3:   0%|          | 0/1805 [00:00<?, ?it/s]Epoch 1/3:   0%|          | 0/1805 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/tests/train_test.py", line 220, in <module>
+    train_model(config)
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/tests/train_test.py", line 169, in train_model
+    for batch in tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{config['training']['num_epochs']}"):
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/.venv/lib/python3.11/site-packages/tqdm/std.py", line 1181, in __iter__
+    for obj in iterable:
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 631, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 675, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/.venv/lib/python3.11/site-packages/torch/utils/data/_utils/fetch.py", line 54, in fetch
+    return self.collate_fn(data)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/tests/train_test.py", line 69, in collate_fn
+    labels = {key: torch.stack([item['labels'][key] for item in batch]) for key in batch[0]['labels']}
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/collins/Documents/Jenga-AI/Jenga-AI/tests/train_test.py", line 69, in <dictcomp>
+    labels = {key: torch.stack([item['labels'][key] for item in batch]) for key in batch[0]['labels']}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: stack expects each tensor to be equal size, but got [5] at entry 0 and [6] at entry 1

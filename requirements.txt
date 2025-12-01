@@ -179,4 +179,5 @@ bitsandbytes
 accelerate
 pyyaml
 datasets
+mlflow>=2.9.0
 

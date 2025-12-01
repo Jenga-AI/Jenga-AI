@@ -1,0 +1,56 @@
+# QA Multi-Head Model Configuration - TEST VERSION
+# Optimized for CPU-only training with limited resources
+
+# Model Configuration
+model:
+  base_model: "distilbert-base-uncased"
+  output_dir: "tests/outputs/qa_model_versions/"
+  dropout: 0.1
+
+# Data Configuration
+data:
+  train_data_path: "tests/synthetic_qa_metrics_data_cleaned.json"  # Using cleaned data
+  test_data_path: "tests/outputs/test_data.json"
+  test_size: 0.15  # Smaller test set for quick testing
+  val_size: 0.15   # Smaller validation set
+  random_seed: 42
+  shuffle: true
+
+# Tokenizer Configuration
+tokenizer:
+  max_length: 128  # Reduced from 256 to save memory
+  padding: "max_length"
+  truncation: true
+
+# Training Configuration - CPU Optimized
+training:
+  learning_rate: 3.0e-5
+  batch_size: 2  # Very small for CPU health
+  num_epochs: 3  # Quick test, not full training
+  weight_decay: 0.01
+  warmup_steps: 50  # Reduced warmup
+  gradient_accumulation_steps: 4  # Accumulate to simulate batch_size=8
+  max_grad_norm: 1.0
+  early_stopping_patience: 2
+  early_stopping_min_delta: 0.001
+
+# MLflow Configuration - Local
+mlflow:
+  tracking_uri: "./mlruns"  # Local tracking
+  experiment_name: "QA_Test_Training"
+  registered_model_name: "QA_Test_Model"
+  log_interval: 5  # Log more frequently for testing
+
+# Output Configuration
+output:
+  save_best_model: true
+  save_final_model: true
+  save_every_epoch: false
+  metrics_file_path: "tests/outputs/qa_model_metrics.json"
+  predictions_file: "tests/outputs/qa_predictions.csv"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  log_file: "tests/outputs/qa_training_test.log"
+  console_output: true
