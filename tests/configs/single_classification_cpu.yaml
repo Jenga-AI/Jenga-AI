@@ -1,0 +1,38 @@
+project_name: "JengaAI_Sentiment_Test_CPU"
+
+model:
+  base_model: "prajjwal1/bert-tiny"  # 4.4M params - perfect for CPU testing
+  dropout: 0.1
+
+tokenizer:
+  max_length: 64       # Short sequences for fast training
+  padding: "max_length"
+  truncation: true
+
+training:
+  output_dir: "./tests/outputs/sentiment_cpu_test"
+  learning_rate: 2.0e-5
+  batch_size: 2        # Small batch for memory efficiency
+  num_epochs: 2        # Quick test - just to verify training works
+  weight_decay: 0.01
+  warmup_steps: 10     # Minimal warmup for quick testing
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_accuracy"
+  greater_is_better: true
+  early_stopping_patience: 2
+  logging:
+    service: "tensorboard"  # Use tensorboard instead of console
+    experiment_name: "sentiment_cpu_test"
+
+tasks:
+  - name: "SentimentClassification"
+    type: "single_label_classification"
+    data_path: "tests/data/sentiment_mini.jsonl"
+    heads:
+      - name: "sentiment_head"
+        num_labels: 2     # Binary classification: positive/negative
+        weight: 1.0
+
+# Note: Memory and CPU optimizations handled in training section

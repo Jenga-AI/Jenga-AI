@@ -1,0 +1,542 @@
+[
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 2,
+    "resolution": 4,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 0,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 1,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 1,
+    "resolution": 4,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 2,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 3,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 0,
+    "resolution": 4,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 2,
+    "resolution": 4,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 1,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 1,
+    "resolution": 3,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 0,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 0,
+    "listening": 1,
+    "proactiveness": 1,
+    "resolution": 3,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 2,
+    "proactiveness": 2,
+    "resolution": 0,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 0,
+    "resolution": 0,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 0,
+    "listening": 1,
+    "proactiveness": 2,
+    "resolution": 0,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 1,
+    "resolution": 1,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 4,
+    "proactiveness": 0,
+    "resolution": 0,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 2,
+    "resolution": 1,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 2,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 0,
+    "listening": 3,
+    "proactiveness": 1,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 4,
+    "proactiveness": 0,
+    "resolution": 4,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 1,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 0,
+    "listening": 1,
+    "proactiveness": 2,
+    "resolution": 0,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 4,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 4,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 0,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 2,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 4,
+    "proactiveness": 0,
+    "resolution": 0,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 0,
+    "listening": 2,
+    "proactiveness": 0,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 2,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 2,
+    "resolution": 0,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 4,
+    "proactiveness": 1,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 2,
+    "resolution": 1,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 2,
+    "proactiveness": 1,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 1,
+    "resolution": 2,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 2,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 0,
+    "listening": 2,
+    "proactiveness": 1,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 0,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 3,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 1,
+    "listening": 1,
+    "proactiveness": 2,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 1,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 0,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 1,
+    "resolution": 4,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 1,
+    "proactiveness": 0,
+    "resolution": 4,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 4,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 4,
+    "proactiveness": 0,
+    "resolution": 4,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 0,
+    "listening": 1,
+    "proactiveness": 2,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Good morning! What can I do for you? Customer: My payment didn't go through.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 2,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello! How can I support you? Customer: I want to cancel my subscription.",
+    "opening": 0,
+    "listening": 2,
+    "proactiveness": 0,
+    "resolution": 0,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 2,
+    "proactiveness": 2,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Welcome! What brings you here? Customer: I need to update my information.",
+    "opening": 0,
+    "listening": 1,
+    "proactiveness": 0,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 1,
+    "proactiveness": 1,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 1
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 0,
+    "listening": 0,
+    "proactiveness": 1,
+    "resolution": 3,
+    "hold": 1,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hello, how can I help you? Customer: I need help with my account.",
+    "opening": 1,
+    "listening": 3,
+    "proactiveness": 0,
+    "resolution": 1,
+    "hold": 0,
+    "closing": 0
+  },
+  {
+    "text": "Agent: Hi there! How may I assist you today? Customer: I have a question about charges.",
+    "opening": 1,
+    "listening": 1,
+    "proactiveness": 1,
+    "resolution": 1,
+    "hold": 1,
+    "closing": 0
+  }
+]

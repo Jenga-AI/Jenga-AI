@@ -1,0 +1,29 @@
+model:
+  name: "microsoft/DialoGPT-small"  # Small model suitable for CPU
+  quantization: null  # No quantization for CPU
+  peft_config:
+    peft_type: "LORA"
+    r: 4  # Reduced rank for CPU efficiency
+    lora_alpha: 16
+    lora_dropout: 0.1
+    target_modules:
+      - "c_attn"  # DialoGPT uses different attention module names
+
+data:
+  path: "tests/outputs/test_data.json"
+  format: "json"
+  train_split: "train"
+  eval_split: null  # Skip eval for faster iteration
+  max_length: 256  # Reduced for CPU memory efficiency
+
+training:
+  output_dir: "cpu_finetuning_output"
+  learning_rate: 5e-5
+  batch_size: 1  # Small batch size for CPU
+  num_epochs: 1  # Quick test run
+  gradient_accumulation_steps: 8  # Simulate larger batch
+  logging_steps: 10
+  save_steps: 100
+  logging_config:
+    report_to: "mlflow"
+    run_name: "cpu-synthetic-finetune"

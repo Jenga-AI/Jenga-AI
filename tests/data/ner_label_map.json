@@ -1,0 +1,7 @@
+{
+  "O": 0,
+  "LOCATION": 1,
+  "PERSON": 2,
+  "THREAT": 3,
+  "ORGANIZATION": 4
+}

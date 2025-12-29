@@ -1,0 +1,22 @@
+data:
+  batch_size: 1
+  format: json
+  max_samples: 50
+  path: cpu_training_data_simple.json
+mlflow:
+  experiment_name: lightweight-cpu-finetuning
+  run_name: cpu-run-20251205-111955
+  tracking_uri: ./mlruns
+model:
+  device: cpu
+  max_length: 256
+  name: gpt2
+  type: llm
+training:
+  cpu_only: true
+  epochs: 1
+  learning_rate: 5.0e-05
+  logging_steps: 5
+  output_dir: lightweight_training_output
+  save_steps: 25
+  warmup_steps: 10

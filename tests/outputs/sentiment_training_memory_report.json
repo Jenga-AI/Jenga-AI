@@ -1,0 +1,92 @@
+{
+  "name": "Sentiment Training Test",
+  "start_time": "2025-12-04T09:13:30.083143",
+  "checkpoints": [
+    {
+      "label": "Start",
+      "timestamp": 0.00017976760864257812,
+      "rss_mb": 332.703125,
+      "vms_mb": 3067.0859375,
+      "system_used_mb": 14065.2421875,
+      "system_available_mb": 1804.3515625,
+      "system_percent": 88.6
+    },
+    {
+      "label": "Test Start",
+      "timestamp": 0.0006623268127441406,
+      "rss_mb": 332.703125,
+      "vms_mb": 3139.10546875,
+      "system_used_mb": 14065.2421875,
+      "system_available_mb": 1804.3515625,
+      "system_percent": 88.6
+    },
+    {
+      "label": "Before imports",
+      "timestamp": 0.0008234977722167969,
+      "rss_mb": 332.703125,
+      "vms_mb": 3139.10546875,
+      "system_used_mb": 14065.2421875,
+      "system_available_mb": 1804.3515625,
+      "system_percent": 88.6
+    },
+    {
+      "label": "After imports",
+      "timestamp": 18.02174210548401,
+      "rss_mb": 580.15234375,
+      "vms_mb": 4770.72265625,
+      "system_used_mb": 14199.75,
+      "system_available_mb": 1669.84375,
+      "system_percent": 89.5
+    },
+    {
+      "label": "After config load",
+      "timestamp": 18.032638549804688,
+      "rss_mb": 580.15234375,
+      "vms_mb": 4770.72265625,
+      "system_used_mb": 14199.75,
+      "system_available_mb": 1669.84375,
+      "system_percent": 89.5
+    },
+    {
+      "label": "After tokenizer",
+      "timestamp": 20.41307020187378,
+      "rss_mb": 596.03515625,
+      "vms_mb": 4783.3984375,
+      "system_used_mb": 14211.88671875,
+      "system_available_mb": 1657.70703125,
+      "system_percent": 89.6
+    },
+    {
+      "label": "After data processing",
+      "timestamp": 20.6398766040802,
+      "rss_mb": 600.453125,
+      "vms_mb": 5119.44140625,
+      "system_used_mb": 14217.234375,
+      "system_available_mb": 1652.359375,
+      "system_percent": 89.6
+    },
+    {
+      "label": "Test failed",
+      "timestamp": 62.94349956512451,
+      "rss_mb": 625.609375,
+      "vms_mb": 5862.15625,
+      "system_used_mb": 14262.1484375,
+      "system_available_mb": 1607.4453125,
+      "system_percent": 89.9
+    },
+    {
+      "label": "Stop",
+      "timestamp": 64.1606969833374,
+      "rss_mb": 626.17578125,
+      "vms_mb": 5862.140625,
+      "system_used_mb": 14268.4453125,
+      "system_available_mb": 1601.1484375,
+      "system_percent": 89.9
+    }
+  ],
+  "peak_memory_mb": 626.17578125,
+  "system_info": {
+    "total_memory_gb": 15.497650146484375,
+    "cpu_count": 4
+  }
+}
