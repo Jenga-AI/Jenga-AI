@@ -242,3 +242,7 @@ llm_finetuning_output/runs/Nov16_10-16-48_naynek-HP-EliteBook-840-G3/events.out.
 llm_finetuning_output/runs/Nov16_10-17-38_naynek-HP-EliteBook-840-G3/events.out.tfevents.1763277462.naynek-HP-EliteBook-840-G3.1086591.0
 llm_finetuning_output/checkpoint-1/vocab.json
 llm_finetuning_output/
+.venv/
+mlruns/
+__pycache__/
+*.pyc
