@@ -1,0 +1,195 @@
+# JengaHub Docker Compose Override for Development
+# This file provides development-specific overrides
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Development API Service Overrides
+  # =============================================================================
+  jengahub-api:
+    build:
+      target: app-code  # Use development target
+    environment:
+      - JENGAHUB_ENV=development
+      - JENGAHUB_LOG_LEVEL=DEBUG
+      - JENGAHUB_HOT_RELOAD=true
+      - JENGAHUB_DEBUG=true
+    volumes:
+      # Mount source code for development
+      - ../jengahub:/app/jengahub
+      - ../configs:/app/configs
+      - ../scripts:/app/scripts
+    command: >
+      bash -c "
+        pip install -e . &&
+        python -m jengahub.api.server 
+          --host 0.0.0.0 
+          --port 8000 
+          --reload 
+          --debug
+      "
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+      - "5678:5678"  # Debug port
+
+  # =============================================================================
+  # Development Worker Overrides
+  # =============================================================================
+  jengahub-training-worker:
+    build:
+      target: app-code
+    environment:
+      - JENGAHUB_ENV=development
+      - JENGAHUB_LOG_LEVEL=DEBUG
+      - JENGAHUB_REQUIRE_GPU=false  # Allow CPU-only for development
+    volumes:
+      - ../jengahub:/app/jengahub
+      - ../configs:/app/configs
+      - ../scripts:/app/scripts
+    deploy:
+      replicas: 0  # Disable by default in development
+
+  jengahub-processing-worker:
+    environment:
+      - JENGAHUB_ENV=development
+      - JENGAHUB_LOG_LEVEL=DEBUG
+    volumes:
+      - ../jengahub:/app/jengahub
+      - ../configs:/app/configs
+    deploy:
+      replicas: 1  # Keep one for testing
+
+  # =============================================================================
+  # Development Database Overrides
+  # =============================================================================
+  postgres:
+    environment:
+      - POSTGRES_PASSWORD=jengahub_dev
+    ports:
+      - "5432:5432"  # Expose for direct access
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ../scripts/dev-init-db.sql:/docker-entrypoint-initdb.d/dev-init-db.sql:ro
+
+  redis:
+    command: redis-server --appendonly yes --maxmemory 512mb
+    ports:
+      - "6379:6379"  # Expose for direct access
+
+  # =============================================================================
+  # Development MLflow Overrides
+  # =============================================================================
+  mlflow:
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://jengahub:jengahub_dev@postgres:5432/mlflow
+    ports:
+      - "5000:5000"  # Expose for direct access
+    volumes:
+      - mlflow_dev_data:/mlflow
+
+  # =============================================================================
+  # Development-only Services
+  # =============================================================================
+  # Hot-reload file watcher
+  file-watcher:
+    image: node:18-alpine
+    working_dir: /app
+    command: >
+      sh -c "
+        npm install -g nodemon &&
+        nodemon --watch /app/jengahub --ext py --exec 'echo File changed, container should restart'
+      "
+    volumes:
+      - ../jengahub:/app/jengahub
+      - ../configs:/app/configs
+    profiles:
+      - development
+      - hot-reload
+
+  # Development tools container
+  dev-tools:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+      target: app-code
+    container_name: jengahub-dev-tools
+    command: ["utility-worker"]
+    environment:
+      - WORKER_TYPE=utility
+      - JENGAHUB_ENV=development
+      - UTILITY_COMMAND=bash
+    volumes:
+      - ../jengahub:/app/jengahub
+      - ../configs:/app/configs
+      - ../scripts:/app/scripts
+      - ../tests:/app/tests
+      - models_data:/app/models
+      - training_data:/app/data
+      - cache_data:/app/cache
+      - logs_data:/app/logs
+    stdin_open: true
+    tty: true
+    profiles:
+      - development
+      - tools
+    networks:
+      - jengahub-network
+
+  # Test runner
+  test-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+      target: app-code
+    command: >
+      bash -c "
+        pip install -e . &&
+        python -m pytest tests/ -v --tb=short
+      "
+    environment:
+      - JENGAHUB_ENV=test
+      - PYTHONPATH=/app
+    volumes:
+      - ../jengahub:/app/jengahub
+      - ../tests:/app/tests
+      - ../configs:/app/configs
+    profiles:
+      - testing
+    networks:
+      - jengahub-network
+
+  # Code quality checker
+  linting:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+      target: app-code
+    command: >
+      bash -c "
+        pip install black flake8 isort mypy &&
+        black --check /app/jengahub &&
+        flake8 /app/jengahub &&
+        isort --check-only /app/jengahub &&
+        mypy /app/jengahub
+      "
+    volumes:
+      - ../jengahub:/app/jengahub
+    profiles:
+      - linting
+    networks:
+      - jengahub-network
+
+# =============================================================================
+# Development Volumes
+# =============================================================================
+volumes:
+  postgres_dev_data:
+    driver: local
+    name: jengahub_postgres_dev
+  
+  mlflow_dev_data:
+    driver: local
+    name: jengahub_mlflow_dev

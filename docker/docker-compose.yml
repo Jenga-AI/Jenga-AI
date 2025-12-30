@@ -1,0 +1,485 @@
+# JengaHub Production Docker Compose
+# Comprehensive multi-service deployment for development and production
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Core API Service
+  # =============================================================================
+  jengahub-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    image: jengahub/api:latest
+    container_name: jengahub-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8001:8001"  # Admin API
+      - "8002:8002"  # Metrics
+    environment:
+      - JENGAHUB_ENV=production
+      - JENGAHUB_API_PORT=8000
+      - JENGAHUB_ADMIN_PORT=8001
+      - JENGAHUB_METRICS_PORT=8002
+      - JENGAHUB_LOG_LEVEL=INFO
+      - JENGAHUB_MODEL_DIR=/app/models
+      - JENGAHUB_CACHE_DIR=/app/cache
+      - DATABASE_URL=postgresql://jengahub:${DB_PASSWORD}@postgres:5432/jengahub
+      - REDIS_URL=redis://redis:6379/0
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - models_data:/app/models
+      - cache_data:/app/cache
+      - logs_data:/app/logs
+      - ./configs:/app/configs:ro
+    depends_on:
+      - postgres
+      - redis
+      - mlflow
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # Training Worker Service
+  # =============================================================================
+  jengahub-training-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+      target: production
+    image: jengahub/worker:latest
+    container_name: jengahub-training-worker
+    restart: unless-stopped
+    command: ["training-worker"]
+    environment:
+      - WORKER_TYPE=training
+      - JENGAHUB_ENV=production
+      - JENGAHUB_LOG_LEVEL=INFO
+      - JENGAHUB_REQUIRE_GPU=true
+      - DATABASE_URL=postgresql://jengahub:${DB_PASSWORD}@postgres:5432/jengahub
+      - REDIS_URL=redis://redis:6379/1
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - WANDB_MODE=offline
+    volumes:
+      - models_data:/app/models
+      - training_data:/app/data
+      - experiments_data:/app/experiments
+      - checkpoints_data:/app/checkpoints
+      - logs_data:/app/logs
+      - ./configs:/app/configs:ro
+    depends_on:
+      - postgres
+      - redis
+      - mlflow
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+          cpus: '8.0'
+        reservations:
+          memory: 8G
+          cpus: '4.0'
+      replicas: 1
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    healthcheck:
+      test: ["CMD", "python", "worker-healthcheck.py"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # =============================================================================
+  # Processing Worker Service
+  # =============================================================================
+  jengahub-processing-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+      target: production
+    image: jengahub/worker:latest
+    restart: unless-stopped
+    command: ["processing-worker"]
+    environment:
+      - WORKER_TYPE=processing
+      - JENGAHUB_ENV=production
+      - JENGAHUB_LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://jengahub:${DB_PASSWORD}@postgres:5432/jengahub
+      - REDIS_URL=redis://redis:6379/2
+    volumes:
+      - models_data:/app/models:ro
+      - processing_data:/app/data
+      - cache_data:/app/cache
+      - logs_data:/app/logs
+      - ./configs:/app/configs:ro
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '2.0'
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "python", "worker-healthcheck.py"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # =============================================================================
+  # CPU-Only API Service (Alternative deployment)
+  # =============================================================================
+  jengahub-api-cpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpu
+      target: production
+    image: jengahub/api-cpu:latest
+    profiles:
+      - cpu-only
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - JENGAHUB_ENV=production
+      - JENGAHUB_API_PORT=8000
+      - JENGAHUB_LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://jengahub:${DB_PASSWORD}@postgres:5432/jengahub
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - models_data:/app/models
+      - cache_data:/app/cache
+      - logs_data:/app/logs
+      - ./configs:/app/configs:ro
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # =============================================================================
+  # Database Services
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: jengahub-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=jengahub
+      - POSTGRES_USER=jengahub
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jengahub -d jengahub"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =============================================================================
+  # Cache Services
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: jengahub-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+      - ./configs/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =============================================================================
+  # Experiment Tracking
+  # =============================================================================
+  mlflow:
+    image: python:3.9-slim
+    container_name: jengahub-mlflow
+    restart: unless-stopped
+    command: >
+      bash -c "
+        pip install mlflow==2.6.0 psycopg2-binary &&
+        mlflow server 
+          --host 0.0.0.0 
+          --port 5000 
+          --backend-store-uri postgresql://jengahub:${DB_PASSWORD}@postgres:5432/mlflow 
+          --default-artifact-root /mlflow/artifacts
+      "
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://jengahub:${DB_PASSWORD}@postgres:5432/mlflow
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # Monitoring Services
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jengahub-prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jengahub-grafana
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # =============================================================================
+  # Jupyter Notebook Service (Development)
+  # =============================================================================
+  jupyter:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+      target: production
+    image: jengahub/worker:latest
+    container_name: jengahub-jupyter
+    restart: unless-stopped
+    profiles:
+      - development
+    command: ["notebook-server"]
+    environment:
+      - WORKER_TYPE=notebook
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-jengahub}
+      - JUPYTER_PORT=8888
+      - JENGAHUB_ENV=development
+    volumes:
+      - models_data:/app/models
+      - training_data:/app/data
+      - experiments_data:/app/experiments
+      - notebooks_data:/app/notebooks
+      - logs_data:/app/logs
+      - ./configs:/app/configs:ro
+    ports:
+      - "8888:8888"
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+
+  # =============================================================================
+  # Load Balancer (Production)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: jengahub-nginx
+    restart: unless-stopped
+    profiles:
+      - production
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - jengahub-api
+    networks:
+      - jengahub-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  jengahub-network:
+    driver: bridge
+    name: jengahub-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  # Application data
+  models_data:
+    driver: local
+    name: jengahub_models
+  
+  training_data:
+    driver: local
+    name: jengahub_training_data
+  
+  processing_data:
+    driver: local
+    name: jengahub_processing_data
+  
+  cache_data:
+    driver: local
+    name: jengahub_cache
+  
+  logs_data:
+    driver: local
+    name: jengahub_logs
+  
+  experiments_data:
+    driver: local
+    name: jengahub_experiments
+  
+  checkpoints_data:
+    driver: local
+    name: jengahub_checkpoints
+  
+  notebooks_data:
+    driver: local
+    name: jengahub_notebooks
+  
+  # Database data
+  postgres_data:
+    driver: local
+    name: jengahub_postgres
+  
+  redis_data:
+    driver: local
+    name: jengahub_redis
+  
+  mlflow_data:
+    driver: local
+    name: jengahub_mlflow
+  
+  # Monitoring data
+  prometheus_data:
+    driver: local
+    name: jengahub_prometheus
+  
+  grafana_data:
+    driver: local
+    name: jengahub_grafana

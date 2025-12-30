@@ -1,0 +1,373 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jengahub-postgres
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: jengahub-postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: jengahub-platform
+    app.kubernetes.io/version: "15"
+spec:
+  serviceName: jengahub-postgres-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+      app.kubernetes.io/instance: jengahub-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/instance: jengahub-postgres
+        app.kubernetes.io/component: database
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsNonRoot: true
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: POSTGRES_DB
+          value: "jengahub"
+        - name: POSTGRES_USER
+          value: "jengahub"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jengahub-secrets
+              key: DB_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - exec pg_isready -U jengahub -d jengahub -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - exec pg_isready -U jengahub -d jengahub -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        resources:
+          limits:
+            memory: 2Gi
+            cpu: "1"
+          requests:
+            memory: 512Mi
+            cpu: 250m
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgres-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgres-config
+        configMap:
+          name: jengahub-postgres-config
+      - name: init-scripts
+        configMap:
+          name: jengahub-postgres-init
+          defaultMode: 0755
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: jengahub-fast-ssd
+      resources:
+        requests:
+          storage: 50Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jengahub-postgres
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: jengahub-postgres
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: jengahub-postgres
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jengahub-postgres-headless
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: jengahub-postgres
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: jengahub-postgres
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jengahub-postgres-init
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: init-scripts
+data:
+  01-init-databases.sql: |
+    -- JengaHub Database Initialization
+    
+    -- Create MLflow database
+    CREATE DATABASE mlflow;
+    GRANT ALL PRIVILEGES ON DATABASE mlflow TO jengahub;
+    
+    -- Create additional schemas in main database
+    \c jengahub;
+    
+    CREATE SCHEMA IF NOT EXISTS jengahub_core;
+    CREATE SCHEMA IF NOT EXISTS jengahub_training;
+    CREATE SCHEMA IF NOT EXISTS jengahub_models;
+    CREATE SCHEMA IF NOT EXISTS jengahub_experiments;
+    CREATE SCHEMA IF NOT EXISTS jengahub_monitoring;
+    
+    -- Grant permissions
+    GRANT ALL ON SCHEMA jengahub_core TO jengahub;
+    GRANT ALL ON SCHEMA jengahub_training TO jengahub;
+    GRANT ALL ON SCHEMA jengahub_models TO jengahub;
+    GRANT ALL ON SCHEMA jengahub_experiments TO jengahub;
+    GRANT ALL ON SCHEMA jengahub_monitoring TO jengahub;
+    
+    -- Create core tables
+    CREATE TABLE IF NOT EXISTS jengahub_core.models (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        version VARCHAR(100) NOT NULL,
+        type VARCHAR(100) NOT NULL,
+        status VARCHAR(50) DEFAULT 'active',
+        config JSONB,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS jengahub_core.training_jobs (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        config JSONB NOT NULL,
+        model_id INTEGER REFERENCES jengahub_core.models(id),
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        error_message TEXT,
+        metrics JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS jengahub_core.api_requests (
+        id SERIAL PRIMARY KEY,
+        endpoint VARCHAR(255) NOT NULL,
+        method VARCHAR(10) NOT NULL,
+        status_code INTEGER,
+        response_time_ms FLOAT,
+        model_used VARCHAR(255),
+        user_id VARCHAR(255),
+        ip_address INET,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX idx_models_name ON jengahub_core.models(name);
+    CREATE INDEX idx_models_type ON jengahub_core.models(type);
+    CREATE INDEX idx_training_jobs_status ON jengahub_core.training_jobs(status);
+    CREATE INDEX idx_api_requests_endpoint ON jengahub_core.api_requests(endpoint);
+    CREATE INDEX idx_api_requests_created_at ON jengahub_core.api_requests(created_at);
+    
+  02-create-extensions.sql: |
+    -- Install useful PostgreSQL extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    CREATE EXTENSION IF NOT EXISTS "btree_gin";
+
+---
+# Redis StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jengahub-redis
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: jengahub-redis
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: jengahub-platform
+    app.kubernetes.io/version: "7"
+spec:
+  serviceName: jengahub-redis-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/instance: jengahub-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/instance: jengahub-redis
+        app.kubernetes.io/component: cache
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsNonRoot: true
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jengahub-secrets
+              key: REDIS_PASSWORD
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 500m
+          requests:
+            memory: 256Mi
+            cpu: 100m
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc/redis/redis.conf
+          subPath: redis.conf
+      volumes:
+      - name: redis-config
+        configMap:
+          name: jengahub-redis-config
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: jengahub-fast-ssd
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jengahub-redis
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: jengahub-redis
+    app.kubernetes.io/component: cache
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: jengahub-redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jengahub-redis-headless
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: jengahub-redis
+    app.kubernetes.io/component: cache
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: jengahub-redis

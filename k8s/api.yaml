@@ -1,0 +1,343 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jengahub-api
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: jengahub-platform
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jengahub
+      app.kubernetes.io/instance: jengahub-api
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jengahub
+        app.kubernetes.io/instance: jengahub-api
+        app.kubernetes.io/component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: jengahub-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: jengahub-api
+        image: jengahub/api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: admin
+          containerPort: 8001
+          protocol: TCP
+        - name: metrics
+          containerPort: 8002
+          protocol: TCP
+        env:
+        - name: JENGAHUB_ENV
+          value: "production"
+        - name: JENGAHUB_API_PORT
+          value: "8000"
+        - name: JENGAHUB_ADMIN_PORT
+          value: "8001"
+        - name: JENGAHUB_METRICS_PORT
+          value: "8002"
+        - name: JENGAHUB_LOG_LEVEL
+          value: "INFO"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: jengahub-secrets
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: jengahub-secrets
+              key: REDIS_URL
+        - name: JENGAHUB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jengahub-secrets
+              key: JENGAHUB_API_KEY
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jengahub-secrets
+              key: JWT_SECRET_KEY
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            configMapKeyRef:
+              name: jengahub-config
+              key: MLFLOW_TRACKING_URI
+        envFrom:
+        - configMapRef:
+            name: jengahub-config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 12
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: "2"
+          requests:
+            memory: 2Gi
+            cpu: "1"
+        volumeMounts:
+        - name: models-storage
+          mountPath: /app/models
+          readOnly: true
+        - name: cache-storage
+          mountPath: /app/cache
+        - name: logs-storage
+          mountPath: /app/logs
+        - name: tmp-storage
+          mountPath: /tmp
+      volumes:
+      - name: models-storage
+        persistentVolumeClaim:
+          claimName: jengahub-models-pvc
+      - name: cache-storage
+        persistentVolumeClaim:
+          claimName: jengahub-cache-pvc
+      - name: logs-storage
+        persistentVolumeClaim:
+          claimName: jengahub-experiments-pvc
+      - name: tmp-storage
+        emptyDir:
+          sizeLimit: 1Gi
+      imagePullSecrets:
+      - name: jengahub-registry-secret
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "amd64"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                  - jengahub-api
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jengahub-api
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  - name: admin
+    port: 8001
+    targetPort: admin
+    protocol: TCP
+  - name: metrics
+    port: 8002
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: api
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jengahub-api
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: api
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: jengahub
+  name: jengahub-api-role
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: api
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jengahub-api-rolebinding
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: api
+subjects:
+- kind: ServiceAccount
+  name: jengahub-api
+  namespace: jengahub
+roleRef:
+  kind: Role
+  name: jengahub-api-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jengahub-api-hpa
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jengahub-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: jengahub-api-pdb
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jengahub
+      app.kubernetes.io/instance: jengahub-api
+      app.kubernetes.io/component: api
+
+---
+# Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: jengahub-api-metrics
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/instance: jengahub-api
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jengahub
+      app.kubernetes.io/instance: jengahub-api
+      app.kubernetes.io/component: api
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s

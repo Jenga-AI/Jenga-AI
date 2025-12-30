@@ -1,0 +1,249 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jengahub-config
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: config
+data:
+  # Application configuration
+  JENGAHUB_ENV: "production"
+  JENGAHUB_LOG_LEVEL: "INFO"
+  JENGAHUB_API_PORT: "8000"
+  JENGAHUB_ADMIN_PORT: "8001"
+  JENGAHUB_METRICS_PORT: "8002"
+  JENGAHUB_DATA_DIR: "/app/data"
+  JENGAHUB_MODEL_DIR: "/app/models"
+  JENGAHUB_CACHE_DIR: "/app/cache"
+  JENGAHUB_LOG_DIR: "/app/logs"
+  
+  # Database configuration
+  DB_HOST: "jengahub-postgres"
+  DB_PORT: "5432"
+  DB_NAME: "jengahub"
+  DB_USER: "jengahub"
+  
+  # Redis configuration
+  REDIS_HOST: "jengahub-redis"
+  REDIS_PORT: "6379"
+  
+  # MLflow configuration
+  MLFLOW_TRACKING_URI: "http://jengahub-mlflow:5000"
+  
+  # Training configuration
+  TOKENIZERS_PARALLELISM: "false"
+  PYTORCH_JIT: "1"
+  TORCH_CPP_LOG_LEVEL: "ERROR"
+  
+  # Worker configuration
+  WORKER_TIMEOUT: "3600"
+  MAX_WORKERS: "4"
+  
+  # API configuration
+  API_WORKERS: "4"
+  API_TIMEOUT: "300"
+  API_MAX_REQUEST_SIZE: "100MB"
+  
+  # Distributed training
+  NCCL_DEBUG: "INFO"
+  CUDA_LAUNCH_BLOCKING: "0"
+  
+  # Model defaults
+  DEFAULT_MODEL_CACHE_SIZE: "10GB"
+  MODEL_LOAD_TIMEOUT: "600"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jengahub-nginx-config
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: nginx-config
+data:
+  nginx.conf: |
+    upstream jengahub_api {
+        least_conn;
+        server jengahub-api:8000 max_fails=3 fail_timeout=30s;
+    }
+    
+    upstream jengahub_admin {
+        least_conn;
+        server jengahub-api:8001 max_fails=3 fail_timeout=30s;
+    }
+    
+    upstream jengahub_metrics {
+        least_conn;
+        server jengahub-api:8002 max_fails=3 fail_timeout=30s;
+    }
+    
+    server {
+        listen 80;
+        server_name _;
+        
+        # Security headers
+        add_header X-Content-Type-Options nosniff;
+        add_header X-Frame-Options DENY;
+        add_header X-XSS-Protection "1; mode=block";
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        
+        # Request size limits
+        client_max_body_size 100M;
+        client_body_timeout 300s;
+        client_header_timeout 300s;
+        
+        # Compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_types text/plain application/json application/javascript text/css application/xml;
+        
+        # Main API
+        location /api/ {
+            proxy_pass http://jengahub_api/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_connect_timeout 300s;
+            proxy_send_timeout 300s;
+            proxy_read_timeout 300s;
+        }
+        
+        # Admin API
+        location /admin/ {
+            proxy_pass http://jengahub_admin/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # Admin access control
+            allow 10.0.0.0/8;
+            allow 192.168.0.0/16;
+            allow 172.16.0.0/12;
+            deny all;
+        }
+        
+        # Metrics (Prometheus)
+        location /metrics {
+            proxy_pass http://jengahub_metrics/metrics;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            
+            # Metrics access control
+            allow 10.0.0.0/8;
+            allow 192.168.0.0/16;
+            allow 172.16.0.0/12;
+            deny all;
+        }
+        
+        # Health check
+        location /health {
+            proxy_pass http://jengahub_api/health;
+            access_log off;
+        }
+        
+        # Default route
+        location / {
+            return 301 /api/docs;
+        }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jengahub-postgres-config
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+data:
+  postgresql.conf: |
+    # JengaHub PostgreSQL Configuration
+    
+    # Connection settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 100
+    
+    # Memory settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    maintenance_work_mem = 64MB
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    work_mem = 4MB
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_statement = 'ddl'
+    log_min_duration_statement = 1000
+    
+    # Performance
+    checkpoint_segments = 32
+    checkpoint_completion_target = 0.9
+    wal_level = replica
+    max_wal_senders = 3
+    
+  pg_hba.conf: |
+    # JengaHub PostgreSQL Client Authentication Configuration
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    host    all             all             10.0.0.0/8              md5
+    host    all             all             192.168.0.0/16          md5
+    host    all             all             172.16.0.0/12           md5
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jengahub-redis-config
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+data:
+  redis.conf: |
+    # JengaHub Redis Configuration
+    
+    # Network
+    bind 0.0.0.0
+    port 6379
+    tcp-keepalive 300
+    
+    # Memory management
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru
+    
+    # Persistence
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # Logging
+    loglevel notice
+    logfile ""
+    
+    # Performance
+    tcp-backlog 511
+    timeout 0
+    databases 16
+    
+    # Security
+    # requirepass will be set via secret
+    
+    # Append only file
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec

@@ -1,0 +1,247 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: jengahub-fast-ssd
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: storage
+provisioner: kubernetes.io/aws-ebs  # Change based on cloud provider
+parameters:
+  type: gp3
+  iopsPerGB: "10"
+  throughput: "125"
+  encrypted: "true"
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: jengahub-standard
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: storage
+provisioner: kubernetes.io/aws-ebs  # Change based on cloud provider
+parameters:
+  type: gp2
+  encrypted: "true"
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# PostgreSQL Database Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-postgres-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: jengahub-fast-ssd
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Redis Cache Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-redis-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: jengahub-fast-ssd
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# MLflow Artifact Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-mlflow-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: mlflow-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Model Storage (Shared across pods)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-models-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: model-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared across multiple pods
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 200Gi
+
+---
+# Training Data Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-training-data-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: training-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared across training workers
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# Checkpoint Storage for Training
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-checkpoints-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: checkpoint-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared across training workers
+  storageClassName: jengahub-fast-ssd
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Experiments and Logs Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-experiments-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: experiments-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared for logging and experiments
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Cache Storage for API
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-cache-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: cache-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared cache across API pods
+  storageClassName: jengahub-fast-ssd
+  resources:
+    requests:
+      storage: 30Gi
+
+---
+# Temporary Processing Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-processing-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: processing-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared across processing workers
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Monitoring Data Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-prometheus-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: monitoring-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-grafana-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: grafana-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# Backup Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jengahub-backup-pvc
+  namespace: jengahub
+  labels:
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/component: backup-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: jengahub-standard
+  resources:
+    requests:
+      storage: 200Gi

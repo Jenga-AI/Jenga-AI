@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jengahub
+  labels:
+    name: jengahub
+    app.kubernetes.io/name: jengahub
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: jengahub-platform
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    description: "JengaHub - Unified Multimodal AI Framework for African Languages"
+---
+# Network Policies for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jengahub-network-policy
+  namespace: jengahub
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: jengahub
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  - ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 5000
+  egress:
+  - {} # Allow all egress traffic
+---
+# Resource Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: jengahub-quota
+  namespace: jengahub
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    requests.nvidia.com/gpu: "4"
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    limits.nvidia.com/gpu: "8"
+    persistentvolumeclaims: "20"
+    services: "20"
+    secrets: "20"
+    configmaps: "20"
+---
+# Limit Range
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: jengahub-limits
+  namespace: jengahub
+spec:
+  limits:
+  - default:
+      cpu: "1"
+      memory: 2Gi
+    defaultRequest:
+      cpu: 100m
+      memory: 256Mi
+    type: Container
+  - default:
+      storage: 10Gi
+    type: PersistentVolumeClaim

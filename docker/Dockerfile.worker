@@ -1,0 +1,233 @@
+# JengaHub Worker Dockerfile
+# Specialized container for background processing and training
+
+# =============================================================================
+# Stage 1: Base Dependencies
+# =============================================================================
+FROM nvidia/cuda:11.8-devel-ubuntu20.04 AS base
+
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies including training tools
+RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3.9-dev \
+    python3.9-distutils \
+    python3-pip \
+    git \
+    curl \
+    wget \
+    build-essential \
+    cmake \
+    pkg-config \
+    libssl-dev \
+    libffi-dev \
+    libblas-dev \
+    liblapack-dev \
+    libsndfile1-dev \
+    ffmpeg \
+    sox \
+    libsox-fmt-all \
+    htop \
+    nvtop \
+    tmux \
+    screen \
+    rsync \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create python symlink
+RUN ln -sf /usr/bin/python3.9 /usr/bin/python
+
+# Upgrade pip
+RUN python -m pip install --upgrade pip setuptools wheel
+
+# =============================================================================
+# Stage 2: Python Dependencies (Full Training Stack)
+# =============================================================================
+FROM base AS python-deps
+
+# Install poetry for dependency management
+RUN pip install poetry==1.6.1
+
+# Configure poetry
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VENV_IN_PROJECT=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install all dependencies including dev dependencies
+RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
+
+# Install additional training and optimization dependencies
+RUN pip install \
+    wandb==0.15.8 \
+    mlflow==2.6.0 \
+    tensorboard==2.14.0 \
+    jupyter==1.0.0 \
+    jupyterlab==4.0.5 \
+    ray[tune]==2.6.3 \
+    optuna==3.3.0
+
+# =============================================================================
+# Stage 3: Distributed Training Dependencies
+# =============================================================================
+FROM python-deps AS distributed-deps
+
+# Install distributed training tools
+RUN pip install \
+    deepspeed==0.10.3 \
+    fairscale==0.4.13 \
+    accelerate==0.21.0
+
+# Install multi-node communication tools
+RUN pip install \
+    mpi4py==3.1.4 \
+    horovod==0.28.1
+
+# =============================================================================
+# Stage 4: Application Code
+# =============================================================================
+FROM distributed-deps AS app-code
+
+# Set Python path
+ENV PYTHONPATH="/app:$PYTHONPATH"
+
+# Create non-root user for security
+RUN groupadd -r jengahub && useradd -r -g jengahub jengahub
+
+# Create necessary directories with proper permissions for training
+RUN mkdir -p \
+    /app/models \
+    /app/data \
+    /app/logs \
+    /app/cache \
+    /app/experiments \
+    /app/checkpoints \
+    /app/datasets \
+    /app/notebooks \
+    && chown -R jengahub:jengahub /app
+
+# Copy application code
+COPY --chown=jengahub:jengahub jengahub/ ./jengahub/
+COPY --chown=jengahub:jengahub examples/ ./examples/
+COPY --chown=jengahub:jengahub scripts/ ./scripts/
+COPY --chown=jengahub:jengahub configs/ ./configs/
+COPY --chown=jengahub:jengahub notebooks/ ./notebooks/
+
+# Install the package
+RUN poetry install
+
+# =============================================================================
+# Stage 5: Worker Runtime Image
+# =============================================================================
+FROM nvidia/cuda:11.8-runtime-ubuntu20.04 AS production
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3.9-distutils \
+    libsndfile1 \
+    ffmpeg \
+    sox \
+    curl \
+    htop \
+    nvtop \
+    tmux \
+    screen \
+    rsync \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create python symlink
+RUN ln -sf /usr/bin/python3.9 /usr/bin/python
+
+# Create non-root user
+RUN groupadd -r jengahub && useradd -r -g jengahub jengahub
+
+# Set working directory
+WORKDIR /app
+
+# Copy virtual environment from deps stage
+COPY --from=app-code /app/.venv /app/.venv
+
+# Copy application code
+COPY --from=app-code --chown=jengahub:jengahub /app/jengahub ./jengahub/
+COPY --from=app-code --chown=jengahub:jengahub /app/scripts ./scripts/
+COPY --from=app-code --chown=jengahub:jengahub /app/configs ./configs/
+COPY --from=app-code --chown=jengahub:jengahub /app/examples ./examples/
+COPY --from=app-code --chown=jengahub:jengahub /app/notebooks ./notebooks/
+
+# Create runtime directories
+RUN mkdir -p \
+    /app/models \
+    /app/data \
+    /app/logs \
+    /app/cache \
+    /app/tmp \
+    /app/experiments \
+    /app/checkpoints \
+    /app/datasets \
+    && chown -R jengahub:jengahub /app
+
+# Set environment variables for worker
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app:$PYTHONPATH" \
+    PYTHONUNBUFFERED=1 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    JENGAHUB_HOME=/app \
+    JENGAHUB_DATA_DIR=/app/data \
+    JENGAHUB_MODEL_DIR=/app/models \
+    JENGAHUB_CACHE_DIR=/app/cache \
+    JENGAHUB_LOG_DIR=/app/logs \
+    JENGAHUB_EXPERIMENT_DIR=/app/experiments \
+    JENGAHUB_CHECKPOINT_DIR=/app/checkpoints \
+    WANDB_DIR=/app/logs \
+    MLFLOW_TRACKING_URI=file:///app/logs/mlflow
+
+# Training optimization environment variables
+ENV CUDA_LAUNCH_BLOCKING=0 \
+    TORCH_DISTRIBUTED_DEBUG=DETAIL \
+    NCCL_DEBUG=INFO \
+    TOKENIZERS_PARALLELISM=false
+
+# Worker health check script
+COPY --chown=jengahub:jengahub docker/worker-healthcheck.py ./worker-healthcheck.py
+RUN chmod +x ./worker-healthcheck.py
+
+# Copy worker startup scripts
+COPY --chown=jengahub:jengahub docker/worker-entrypoint.sh ./worker-entrypoint.sh
+RUN chmod +x ./worker-entrypoint.sh
+
+# Switch to non-root user
+USER jengahub
+
+# Expose ports for distributed training
+EXPOSE 8000 29500 29501 29502 29503
+
+# Health check for worker
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+    CMD python worker-healthcheck.py || exit 1
+
+# Use entrypoint script for flexible worker modes
+ENTRYPOINT ["./worker-entrypoint.sh"]
+
+# Default command - training worker
+CMD ["training-worker"]
+
+# =============================================================================
+# Labels for metadata
+# =============================================================================
+LABEL maintainer="JengaHub Team"
+LABEL version="1.0.0-worker"
+LABEL description="JengaHub Worker - Background Processing and Training"
+LABEL org.opencontainers.image.source="https://github.com/Jenga-AI/Jenga-AI"
+LABEL org.opencontainers.image.documentation="https://jengahub.ai/docs"
+LABEL org.opencontainers.image.vendor="JengaHub"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
