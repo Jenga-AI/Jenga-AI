@@ -2,24 +2,24 @@ import torch
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import AdamW
-from transformers import PreTrainedTokenizer, AutoTokenizer, AutoConfig
+from transformers import PreTrainedTokenizer
 from transformers.optimization import get_linear_schedule_with_warmup
 from tqdm import tqdm
 import numpy as np
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import itertools
 import os
 import mlflow
 from torch.utils.tensorboard import SummaryWriter
 
-from ..core.config import ExperimentConfig, load_experiment_config
+from ..core.config import ExperimentConfig
 from ..core.model import MultiTaskModel
-from ..data.data_processing import DataProcessor
 from ..utils.metrics import (
     compute_classification_metrics,
     compute_multi_label_metrics,
     compute_ner_metrics
 )
+from .callbacks import CallbackHandler, NestedLearningCallback, BaseCallback
 
 # --- Task-Specific Collate Functions ---
 
@@ -76,8 +76,14 @@ class Trainer:
     Uses task-specific dataloaders and a round-robin iterator for training.
     """
     def __init__(self, config: ExperimentConfig, model: MultiTaskModel, tokenizer: PreTrainedTokenizer,
-                 train_datasets: Dict[str, Any], eval_datasets: Dict[str, Any]):
+                 train_datasets: Dict[str, Any], eval_datasets: Dict[str, Any], callbacks: Optional[List[BaseCallback]] = None):
         self.config = config
+        
+        # Initialize callbacks
+        if callbacks is None:
+            callbacks = [NestedLearningCallback()]
+        self.callback_handler = CallbackHandler(callbacks)
+        
         self.training_args = config.training
         self.model = model.to(self.training_args.device)
         self.tokenizer = tokenizer
@@ -89,42 +95,6 @@ class Trainer:
 
         self.logger = None
         self._init_logger()
-
-    @classmethod
-    def from_config(cls, config_path: str):
-        """
-        Class method to instantiate the Trainer directly from a YAML config file.
-        This method handles the entire setup process.
-        """
-        # 1. Load Config
-        print("Loading experiment configuration...")
-        config = load_experiment_config(config_path)
-
-        # 2. Load Tokenizer
-        print(f"Loading tokenizer: {config.model.base_model}")
-        tokenizer = AutoTokenizer.from_pretrained(config.model.base_model)
-        if tokenizer.pad_token is None:
-            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        config.tokenizer.pad_token_id = tokenizer.pad_token_id
-
-        # 3. Process Data
-        print("Processing data for all tasks...")
-        data_processor = DataProcessor(config, tokenizer)
-        train_datasets, eval_datasets, updated_config = data_processor.process()
-        config = updated_config
-
-        # 4. Instantiate Model
-        print("Instantiating model...")
-        model_config = AutoConfig.from_pretrained(config.model.base_model)
-        model = MultiTaskModel(
-            config=model_config,
-            model_config=config.model,
-            task_configs=config.tasks
-        )
-        model.resize_token_embeddings(len(tokenizer))
-
-        # 5. Instantiate and return the Trainer
-        return cls(config, model, tokenizer, train_datasets, eval_datasets)
 
     def _init_logger(self):
         if self.training_args.logging:
@@ -177,6 +147,8 @@ class Trainer:
         return optimizer, scheduler
 
     def train(self):
+        self.callback_handler.call('on_train_begin', self)
+        
         num_training_steps = sum(len(dl) for dl in self.train_dataloaders.values()) * self.training_args.num_epochs
         optimizer, scheduler = self._create_optimizer_and_scheduler(num_training_steps)
 
@@ -187,6 +159,7 @@ class Trainer:
         epochs_no_improve = 0
 
         for epoch in range(self.training_args.num_epochs):
+            self.callback_handler.call('on_epoch_begin', self, epoch=epoch)
             self.model.train()
 
             train_iterators = {name: iter(dl) for name, dl in self.train_dataloaders.items()}
@@ -195,6 +168,9 @@ class Trainer:
                 for task_name, iterator in list(train_iterators.items()):
                     try:
                         batch = next(iterator)
+                        task_id = self.task_map[task_name]
+                        
+                        self.callback_handler.call('on_batch_begin', self, task_id=task_id, batch=batch)
                     except StopIteration:
                         del train_iterators[task_name]
                         continue
@@ -220,10 +196,13 @@ class Trainer:
                     loss = outputs["loss"]
 
                     loss.backward()
+                    self.callback_handler.call('on_backward_end', self, task_id=task_id)
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                     optimizer.step()
                     scheduler.step()
 
+                    self.callback_handler.call('on_batch_end', self, task_id=task_id, loss=loss.item())
+                    self.callback_handler.call('on_step_end', self)
                     self._log_metrics({"train_loss": loss.item()}, global_step, "Train")
 
                     progress_bar.update(1)
@@ -234,6 +213,7 @@ class Trainer:
                 eval_metrics = self.evaluate()
                 self._log_metrics(eval_metrics, epoch, "Eval")
                 print(f"\nEpoch {epoch + 1} Eval Metrics: {eval_metrics}")
+                self.callback_handler.call('on_epoch_end', self, epoch=epoch, metrics=eval_metrics)
 
                 if self.training_args.early_stopping_patience:
                     metric_to_check = eval_metrics.get(self.training_args.metric_for_best_model, None)
@@ -254,6 +234,8 @@ class Trainer:
                         if epochs_no_improve >= self.training_args.early_stopping_patience:
                             print("Early stopping triggered.")
                             break
+        
+        self.callback_handler.call('on_train_end', self)
         progress_bar.close()
 
     def evaluate(self) -> Dict[str, float]:
@@ -313,14 +295,11 @@ class Trainer:
                         preds_sequences = []
                         labels_sequences = []
                         
-                        # Concatenate all batches for this head
-                        concatenated_preds = np.concatenate(all_preds[head_name], axis=0)
-                        concatenated_labels = np.concatenate(all_labels[head_name], axis=0)
-
-                        # Iterate through each sequence in the concatenated arrays
-                        for i in range(len(concatenated_preds)):
-                            preds_sequences.append(concatenated_preds[i].argmax(axis=-1)) # Get predicted labels for each token
-                            labels_sequences.append(concatenated_labels[i])
+                        # Iterate through each batch and its sequences
+                        for batch_preds, batch_labels in zip(all_preds[head_name], all_labels[head_name]):
+                            for i in range(len(batch_preds)):
+                                preds_sequences.append(batch_preds[i].argmax(axis=-1)) # Get predicted labels for each token
+                                labels_sequences.append(batch_labels[i])
                         
                         # Pass sequences to metrics function
                         metrics = compute_ner_metrics(preds_sequences, labels_sequences, task_config.label_maps['ner_head'])

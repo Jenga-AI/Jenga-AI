@@ -23,8 +23,22 @@ Jenga-AI/results/
 Jenga-AI/results/single_classification_test/logs/single_classification_run/events.out.tfevents.1763857406.nayneKs-MBP.82255.0
 Jenga-AI/results/single_classification_test/logs/single_classification_run/events.out.tfevents.1763857406.nayneKs-MBP.82255.0
 Jenga-AI/results/single_classification_test/logs/single_classification_run/events.out.tfevents.1763845691.nayneKs-MBP.45425.0
+tests/output/test_model/
+tests/output/
+tests/output/test_peft_model/
+unified_results/JengaAI_MVP/best_model/
+unified_results/JengaAI_MVP/logs/
 
 
+
+examples/unified_results_ner_v2
+examples/qa_training_results_v2
+examples/qa_training_results
+examples/security_results
+examples/datasets
+.DS_Store
+multitask_bert/.DS_Store
+scripts/synthetic/data/
 
 # Distribution / packaging
 *.egg-info/
@@ -269,3 +283,4 @@ examples/ner_synthetic_dataset_v1.jsonl
 Jenga-AI/examples/datasets/
 examples/datasets/
 
+multitask_bert/.DS_Store

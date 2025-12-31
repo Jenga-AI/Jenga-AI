@@ -1,0 +1,302 @@
+[
+    {
+        "packet_size": 64,
+        "port": 443,
+        "protocol": 6,
+        "duration": 0.05,
+        "request_count": 1,
+        "bytes_sent": 128,
+        "bytes_received": 256,
+        "label": 0
+    },
+    {
+        "packet_size": 128,
+        "port": 80,
+        "protocol": 6,
+        "duration": 0.1,
+        "request_count": 2,
+        "bytes_sent": 512,
+        "bytes_received": 1024,
+        "label": 0
+    },
+    {
+        "packet_size": 1500,
+        "port": 443,
+        "protocol": 6,
+        "duration": 0.2,
+        "request_count": 5,
+        "bytes_sent": 2048,
+        "bytes_received": 4096,
+        "label": 0
+    },
+    {
+        "packet_size": 256,
+        "port": 22,
+        "protocol": 6,
+        "duration": 0.15,
+        "request_count": 3,
+        "bytes_sent": 1024,
+        "bytes_received": 2048,
+        "label": 0
+    },
+    {
+        "packet_size": 512,
+        "port": 8080,
+        "protocol": 6,
+        "duration": 0.3,
+        "request_count": 10,
+        "bytes_sent": 4096,
+        "bytes_received": 8192,
+        "label": 0
+    },
+    {
+        "packet_size": 50000,
+        "port": 22,
+        "protocol": 6,
+        "duration": 120,
+        "request_count": 500,
+        "bytes_sent": 1000000,
+        "bytes_received": 50000,
+        "label": 1
+    },
+    {
+        "packet_size": 100,
+        "port": 3389,
+        "protocol": 6,
+        "duration": 0.01,
+        "request_count": 1000,
+        "bytes_sent": 100000,
+        "bytes_received": 100,
+        "label": 1
+    },
+    {
+        "packet_size": 64,
+        "port": 53,
+        "protocol": 17,
+        "duration": 0.001,
+        "request_count": 10000,
+        "bytes_sent": 640000,
+        "bytes_received": 64000,
+        "label": 1
+    },
+    {
+        "packet_size": 1024,
+        "port": 80,
+        "protocol": 6,
+        "duration": 0.5,
+        "request_count": 1,
+        "bytes_sent": 1024,
+        "bytes_received": 1024000,
+        "label": 1
+    },
+    {
+        "packet_size": 200,
+        "port": 25,
+        "protocol": 6,
+        "duration": 0.1,
+        "request_count": 100,
+        "bytes_sent": 20000,
+        "bytes_received": 200,
+        "label": 1
+    },
+    {
+        "packet_size": 128,
+        "port": 443,
+        "protocol": 6,
+        "duration": 0.08,
+        "request_count": 2,
+        "bytes_sent": 256,
+        "bytes_received": 512,
+        "label": 0
+    },
+    {
+        "packet_size": 256,
+        "port": 80,
+        "protocol": 6,
+        "duration": 0.12,
+        "request_count": 3,
+        "bytes_sent": 768,
+        "bytes_received": 1536,
+        "label": 0
+    },
+    {
+        "packet_size": 512,
+        "port": 443,
+        "protocol": 6,
+        "duration": 0.25,
+        "request_count": 6,
+        "bytes_sent": 3072,
+        "bytes_received": 6144,
+        "label": 0
+    },
+    {
+        "packet_size": 1024,
+        "port": 8080,
+        "protocol": 6,
+        "duration": 0.4,
+        "request_count": 12,
+        "bytes_sent": 12288,
+        "bytes_received": 24576,
+        "label": 0
+    },
+    {
+        "packet_size": 64,
+        "port": 22,
+        "protocol": 6,
+        "duration": 0.03,
+        "request_count": 1,
+        "bytes_sent": 64,
+        "bytes_received": 128,
+        "label": 0
+    },
+    {
+        "packet_size": 75000,
+        "port": 80,
+        "protocol": 6,
+        "duration": 150,
+        "request_count": 800,
+        "bytes_sent": 1500000,
+        "bytes_received": 75000,
+        "label": 1
+    },
+    {
+        "packet_size": 128,
+        "port": 445,
+        "protocol": 6,
+        "duration": 0.02,
+        "request_count": 2000,
+        "bytes_sent": 256000,
+        "bytes_received": 128,
+        "label": 1
+    },
+    {
+        "packet_size": 64,
+        "port": 123,
+        "protocol": 17,
+        "duration": 0.002,
+        "request_count": 15000,
+        "bytes_sent": 960000,
+        "bytes_received": 96000,
+        "label": 1
+    },
+    {
+        "packet_size": 2048,
+        "port": 443,
+        "protocol": 6,
+        "duration": 1.0,
+        "request_count": 2,
+        "bytes_sent": 4096,
+        "bytes_received": 2048000,
+        "label": 1
+    },
+    {
+        "packet_size": 300,
+        "port": 587,
+        "protocol": 6,
+        "duration": 0.15,
+        "request_count": 150,
+        "bytes_sent": 45000,
+        "bytes_received": 300,
+        "label": 1
+    },
+    {
+        "packet_size": 192,
+        "port": 443,
+        "protocol": 6,
+        "duration": 0.09,
+        "request_count": 2,
+        "bytes_sent": 384,
+        "bytes_received": 768,
+        "label": 0
+    },
+    {
+        "packet_size": 384,
+        "port": 80,
+        "protocol": 6,
+        "duration": 0.18,
+        "request_count": 4,
+        "bytes_sent": 1536,
+        "bytes_received": 3072,
+        "label": 0
+    },
+    {
+        "packet_size": 768,
+        "port": 443,
+        "protocol": 6,
+        "duration": 0.35,
+        "request_count": 8,
+        "bytes_sent": 6144,
+        "bytes_received": 12288,
+        "label": 0
+    },
+    {
+        "packet_size": 1536,
+        "port": 8080,
+        "protocol": 6,
+        "duration": 0.6,
+        "request_count": 16,
+        "bytes_sent": 24576,
+        "bytes_received": 49152,
+        "label": 0
+    },
+    {
+        "packet_size": 96,
+        "port": 22,
+        "protocol": 6,
+        "duration": 0.04,
+        "request_count": 1,
+        "bytes_sent": 96,
+        "bytes_received": 192,
+        "label": 0
+    },
+    {
+        "packet_size": 100000,
+        "port": 443,
+        "protocol": 6,
+        "duration": 200,
+        "request_count": 1200,
+        "bytes_sent": 2000000,
+        "bytes_received": 100000,
+        "label": 1
+    },
+    {
+        "packet_size": 150,
+        "port": 3306,
+        "protocol": 6,
+        "duration": 0.03,
+        "request_count": 3000,
+        "bytes_sent": 450000,
+        "bytes_received": 150,
+        "label": 1
+    },
+    {
+        "packet_size": 64,
+        "port": 161,
+        "protocol": 17,
+        "duration": 0.003,
+        "request_count": 20000,
+        "bytes_sent": 1280000,
+        "bytes_received": 128000,
+        "label": 1
+    },
+    {
+        "packet_size": 3072,
+        "port": 80,
+        "protocol": 6,
+        "duration": 1.5,
+        "request_count": 3,
+        "bytes_sent": 9216,
+        "bytes_received": 3072000,
+        "label": 1
+    },
+    {
+        "packet_size": 400,
+        "port": 465,
+        "protocol": 6,
+        "duration": 0.2,
+        "request_count": 200,
+        "bytes_sent": 80000,
+        "bytes_received": 400,
+        "label": 1
+    }
+]

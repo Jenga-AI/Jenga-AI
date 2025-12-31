@@ -31,11 +31,13 @@ def main(config_path: str):
     experiment_config = updated_config 
 
     # 4. Instantiate model
+    # 4. Instantiate model
     print("Instantiating the multi-task model...")
+    from transformers import AutoConfig
     model = MultiTaskModel(
-        config=AutoTokenizer.from_pretrained(experiment_config.model.base_model).get_config(),
+        config=AutoConfig.from_pretrained(experiment_config.model.base_model),
         model_config=experiment_config.model,
-        tasks=experiment_config.tasks
+        task_configs=experiment_config.tasks
     )
 
     # 5. Initialize Trainer

@@ -31,6 +31,7 @@ class FusionConfig:
 class ModelConfig:
     """Configuration for the model."""
     base_model: str = "distilbert-base-uncased"
+    backbone_type: str = "text" # Added for JengaAI 2.0 modular backbones
     dropout: float = 0.1
     fusion: Optional[FusionConfig] = None
 
@@ -68,11 +69,24 @@ class TrainingConfig:
     metric_for_best_model: str = "eval_loss"
     greater_is_better: bool = False
     early_stopping_patience: Optional[int] = None
-    device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device: str = field(default="auto")
     logging: Optional[LoggingConfig] = None
 
+    @property
+    def auto_device(self) -> str:
+        if torch.cuda.is_available():
+            return "cuda"
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+        # Support for Intel GPUs via Intel Extension for PyTorch if installed
+        elif hasattr(torch, "xpu") and torch.xpu.is_available():
+            return "xpu"
+        return "cpu"
+
     def __post_init__(self):
-        if isinstance(self.logging, dict):
+        if self.device == "auto":
+            self.device = self.auto_device
+        if self.logging and isinstance(self.logging, dict):
             self.logging = LoggingConfig(**self.logging)
 
 @dataclass

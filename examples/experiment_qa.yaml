@@ -1,0 +1,37 @@
+project_name: "JengaAI_QA_Inference"
+
+model:
+  base_model: "distilbert-base-uncased"
+  dropout: 0.1
+
+tokenizer:
+  max_length: 512
+  padding: "max_length"
+  truncation: true
+
+training:
+  device: "cpu"
+  output_dir: "./qa_training_results"
+  learning_rate: 2.0e-5
+  batch_size: 4
+  num_epochs: 5
+  weight_decay: 0.01
+  warmup_steps: 100
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_QA_Task_loss"
+  greater_is_better: false
+  early_stopping_patience: 3
+  logging:
+    service: "mlflow"
+    experiment_name: "JengaAI_QA"
+
+tasks:
+  - name: "QA_Task"
+    type: "classification"
+    data_path: "/Users/naynek/Desktop/MultiClassifier/Jenga-AI/examples/datasets/synthetic_qa_metrics_data_v01x.json"
+    heads:
+      - name: "quality_head"
+        num_labels: 3 # poor, average, good
+        weight: 1.0

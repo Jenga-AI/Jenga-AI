@@ -8,7 +8,7 @@ experiment:
   date: "2025-09-28"
 
 data:
-  dataset_path: "ner_synthetic_dataset_v2.jsonl"
+  dataset_path: "/Users/naynek/Desktop/MultiClassifier/Jenga-AI/examples/ner_synthetic_dataset_v1.jsonl"
   test_size: 0.1
   validation_size: 0.1
   
@@ -17,7 +17,7 @@ model:
   tokenizer_name: "distilbert-base-cased" 
   
 tokenizer:
-  max_length: 512
+  max_length: 256
   padding: "max_length"
   truncation: true
   return_offsets_mapping: true
@@ -25,8 +25,8 @@ tokenizer:
 training:
   output_dir: "./ner_model"
   num_train_epochs: 5
-  per_device_train_batch_size: 8
-  per_device_eval_batch_size: 8
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
   learning_rate: 0.00002  # 2e-5 as decimal to avoid YAML parsing issues
   weight_decay: 0.01
   warmup_ratio: 0.1
@@ -55,4 +55,4 @@ seed: 42
 # Optional: Device settings
 device:
   use_cuda: true
-  mixed_precision: false 
+  mixed_precision: true 

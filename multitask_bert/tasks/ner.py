@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
-from typing import Dict, Any, Optional
-from .base import BaseTask
+from typing import Dict, Any, Optional # Added Optional
+from .base import BaseTask # Removed TaskOutput
 from ..core.config import TaskConfig
-from ..core.registry import register_task
 
-@register_task("ner")
 class NERTask(BaseTask):
     """
     A task for Named Entity Recognition (token classification).
