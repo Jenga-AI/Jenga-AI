@@ -1,0 +1,22 @@
+[
+  {
+    "input": "Hello",
+    "output": "Hi there! How can I help you today?"
+  },
+  {
+    "input": "Thank you",
+    "output": "You're welcome! Happy to help."
+  },
+  {
+    "input": "Goodbye",
+    "output": "Have a great day! Feel free to return anytime."
+  },
+  {
+    "input": "How are you?",
+    "output": "I'm doing well, thank you for asking!"
+  },
+  {
+    "input": "Help me",
+    "output": "Of course! What do you need assistance with?"
+  }
+]

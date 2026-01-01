@@ -1,0 +1,42 @@
+[
+  {
+    "text": "Hello, how can I help you today?",
+    "quality_scores": {
+      "opening": 1,
+      "listening": 3,
+      "resolution": 2
+    }
+  },
+  {
+    "text": "I understand your concern and will help you.",
+    "quality_scores": {
+      "opening": 0,
+      "listening": 4,
+      "resolution": 3
+    }
+  },
+  {
+    "text": "Thank you for calling, goodbye!",
+    "quality_scores": {
+      "opening": 0,
+      "listening": 1,
+      "resolution": 1
+    }
+  },
+  {
+    "text": "Let me check that information for you.",
+    "quality_scores": {
+      "opening": 0,
+      "listening": 3,
+      "resolution": 2
+    }
+  },
+  {
+    "text": "What seems to be the problem?",
+    "quality_scores": {
+      "opening": 1,
+      "listening": 2,
+      "resolution": 1
+    }
+  }
+]

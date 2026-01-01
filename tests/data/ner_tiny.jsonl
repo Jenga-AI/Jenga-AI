@@ -1,0 +1,5 @@
+{"text": "John lives in New York", "labels": ["B-PER", "O", "O", "B-LOC", "I-LOC"]}
+{"text": "Apple Inc is headquartered", "labels": ["B-ORG", "I-ORG", "O", "O"]}
+{"text": "Mary visited London yesterday", "labels": ["B-PER", "O", "B-LOC", "O"]}
+{"text": "Microsoft develops software products", "labels": ["B-ORG", "O", "O", "O"]}
+{"text": "Paris is beautiful", "labels": ["B-LOC", "O", "O"]}
