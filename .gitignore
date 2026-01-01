@@ -225,8 +225,28 @@ __marimo__/
 # OS-generated files
 .DS_Store # From local
 
-# MLFlow runs
+# MLFlow runs and model artifacts
 mlruns/ # From local
+tests/outputs/
+tests/mlruns/
+unified_results/
+unified_results_ner/
+
+# Model files
+*.bin
+*.safetensors
+*.onnx
+*.pkl
+*.pt
+*.pth
+checkpoints/
+models/
+model_artifacts/
+
+# Large data files (keep tiny test files)
+**/data/*_large.*
+**/data/*_full.*
+**/downloads/
 test_output_multitask_bert/logs/test_multitask_bert_run/events.out.tfevents.1763274725.naynek-HP-EliteBook-840-G3.1050212.0
 test_output_multitask_bert/logs/test_multitask_bert_run/events.out.tfevents.1763254593.naynek-HP-EliteBook-840-G3.802552.0
 test_output_multitask_bert/logs
