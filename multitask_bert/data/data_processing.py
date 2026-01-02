@@ -41,6 +41,9 @@ class DataProcessor:
                 tokenized_dataset = self._process_multi_label_classification(dataset, task_config)
             elif task_config.type == "ner":
                 tokenized_dataset = self._process_ner(dataset, task_config)
+            elif task_config.type == "anomaly_detection":
+                # Security Task: No tokenizer, just feature scaling
+                tokenized_dataset = self._process_anomaly_detection(dataset, task_config)
             else:
                 raise ValueError(f"Unknown task type: {task_config.type}")
 
@@ -50,6 +53,11 @@ class DataProcessor:
             if task_config.type == "ner":
                 columns_to_set.append('labels')
             elif task_config.type in ["classification", "multi_label_classification"]:
+                for head_config in task_config.heads:
+                    columns_to_set.append(f'labels_{head_config.name}')
+            elif task_config.type == "anomaly_detection":
+                # For security, we use 'features' (the numbers) and 'labels_anomaly'
+                columns_to_set = ['features']
                 for head_config in task_config.heads:
                     columns_to_set.append(f'labels_{head_config.name}')
             
@@ -88,9 +96,37 @@ class DataProcessor:
             # Instead of nesting under 'labels', add each head's labels as a separate key
             for head_config in task_config.heads:
                 head_name = head_config.name
-                # Assuming the label column in the dataset is named 'label' for single-label classification
-                if 'label' in examples: # Changed from head_config.name in examples
-                    tokenized_inputs[f'labels_{head_name}'] = [torch.tensor(l, dtype=torch.long) for l in examples['label']] # Changed from examples[head_name]
+                
+                # Get label map and invert it if it exists
+                label_map = task_config.label_maps.get(head_name) if task_config.label_maps else None
+                label_to_id = {v: k for k, v in label_map.items()} if label_map else None
+
+                # Try common label column names
+                label_column = None
+                if 'label' in examples:
+                    label_column = 'label'
+                elif 'quality_level' in examples:
+                    label_column = 'quality_level'
+                
+                if label_column:
+                    labels = examples[label_column]
+                    
+                    # Dynamic label mapping if not provided
+                    if label_to_id is None:
+                        unique_labels = sorted(list(set(labels)))
+                        label_to_id = {l: i for i, l in enumerate(unique_labels)}
+                        id_to_label = {i: l for l, i in label_to_id.items()}
+                        # Update task config for later use
+                        if task_config.label_maps is None:
+                            task_config.label_maps = {}
+                        task_config.label_maps[head_name] = id_to_label
+                        head_config.num_labels = len(unique_labels)
+                    
+                    # Convert string labels to IDs
+                    if isinstance(labels[0], str):
+                        labels = [label_to_id.get(l, -100) for l in labels]
+                    
+                    tokenized_inputs[f'labels_{head_name}'] = [torch.tensor(l, dtype=torch.long) for l in labels]
                 else:
                     num_examples = len(examples['text'])
                     tokenized_inputs[f'labels_{head_name}'] = [torch.full((1,), -100, dtype=torch.long) for _ in range(num_examples)]
@@ -99,7 +135,9 @@ class DataProcessor:
         return dataset.map(process_and_tokenize, batched=True)
 
     def _process_multi_label_classification(self, dataset: Dataset, task_config: TaskConfig) -> Dataset:
-        """Processes and tokenizes data for multi-label classification."""
+        """Processes and tokenizes data for multi-label classification (multi-head)."""
+        import json
+        
         def process_and_tokenize(examples):
             tokenized_inputs = self.tokenizer(
                 examples['text'],
@@ -108,20 +146,48 @@ class DataProcessor:
                 max_length=self.config.tokenizer.max_length,
             )
             
-            # Convert list of labels to multi-hot encoded tensor
-            # Assuming labels are provided as a list of strings or integers
-            # and task_config.labels contains the full set of possible labels
-            num_labels = len(task_config.labels)
-            batch_labels = []
-            for example_labels in examples['labels']:
-                multi_hot_labels = [0] * num_labels
-                for label in example_labels:
-                    if label in task_config.labels:
-                        multi_hot_labels[task_config.labels.index(label)] = 1
-                batch_labels.append(multi_hot_labels)
-            
-            tokenized_inputs['labels'] = [torch.tensor(l, dtype=torch.float) for l in batch_labels]
+            for head_config in task_config.heads:
+                head_name = head_config.name
+                head_labels_batch = []
+                
+                for i in range(len(examples['text'])):
+                    # Extract label data for this example
+                    labels_data = examples['labels'][i]
+                    
+                    # Parse JSON if it's a string
+                    if isinstance(labels_data, str):
+                        try:
+                            labels_data = json.loads(labels_data)
+                        except json.JSONDecodeError:
+                            labels_data = {}
+                    
+                    if not isinstance(labels_data, dict):
+                        labels_data = {}
+                        
+                    labels = labels_data.get(head_name, [])
+                    
+                    # Ensure labels is a list of numbers
+                    if not isinstance(labels, list):
+                        labels = [labels] if labels is not None else []
+                    
+                    # Convert all elements to float/int to avoid "str" error
+                    try:
+                        labels = [float(l) for l in labels]
+                    except (ValueError, TypeError):
+                        labels = [0.0] * head_config.num_labels
+
+                    # Ensure it matches expected length
+                    if len(labels) < head_config.num_labels:
+                        labels = labels + [0.0] * (head_config.num_labels - len(labels))
+                    elif len(labels) > head_config.num_labels:
+                        labels = labels[:head_config.num_labels]
+                        
+                    head_labels_batch.append(torch.tensor(labels, dtype=torch.float))
+                
+                tokenized_inputs[f'labels_{head_name}'] = head_labels_batch
+                
             return tokenized_inputs
+            
         return dataset.map(process_and_tokenize, batched=True)
 
 
@@ -255,3 +321,46 @@ class DataProcessor:
             return tokenized_inputs
 
         return dataset.map(align_labels_with_tokens, batched=True)
+
+    def _process_anomaly_detection(self, dataset: Dataset, task_config: TaskConfig) -> Dataset:
+        """
+        Processes tabular data for security/anomaly detection tasks.
+        Expects columns like 'packet_size', 'port', 'request_count', etc.
+        """
+        import numpy as np
+        
+        # 1. Identify Feature Columns (exclude 'label', 'text', 'id')
+        feature_cols = [c for c in dataset.column_names if c not in ['label', 'id', 'text', 'labels']]
+        print(f"🔒 [Security Refinery] Detected features: {feature_cols}")
+        
+        # 2. Update task config so the Backbone knows the input dimension
+        # We assume all heads share the same input features for now
+        task_config.input_dim = len(feature_cols)
+
+        # 3. Normalization (Simple Z-Score or MinMax equivalent)
+        # For simplicity in this demo, we'll convert to float tensor directly.
+        # In a real system, you'd fit a StandardScaler here.
+        
+        def process_tabular(examples):
+            # Convert list of dicts (columns) -> list of lists (rows) -> Tensor
+            batch_size = len(examples[feature_cols[0]])
+            features_batch = []
+            labels_batch = []
+            
+            for i in range(batch_size):
+                # Extract features
+                row_features = [float(examples[col][i]) for col in feature_cols]
+                features_batch.append(torch.tensor(row_features, dtype=torch.float))
+                
+                # Extract labels
+                # We assume a single 'label' column for 0 (Normal) vs 1 (Anomaly)
+                # But we map it to the head name expected by the model
+                label_val = float(examples['label'][i]) if 'label' in examples else 0.0
+                labels_batch.append(torch.tensor(label_val, dtype=torch.long))
+
+            return {
+                "features": features_batch,
+                f"labels_{task_config.heads[0].name}": labels_batch
+            }
+
+        return dataset.map(process_tabular, batched=True, remove_columns=dataset.column_names)

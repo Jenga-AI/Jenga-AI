@@ -3,8 +3,8 @@ project_name: "JengaAI_Hackathon_MVP"
 # Define the tasks for the multi-task model
 tasks:
   - name: "ThreatClassification"
-    type: "single_label_classification"
-    data_path: "/home/naynek/Desktop/Jenga-AI/threat_classification_data.jsonl"
+    type: "classification"
+    data_path: "/Users/naynek/Desktop/MultiClassifier/Jenga-AI/threat_classification_data.jsonl"
     heads:
       - name: "threat_head"
         num_labels: 2 # Threat, Non-Threat
@@ -14,7 +14,7 @@ tasks:
 
   - name: "ThreatNER"
     type: "ner"
-    data_path: "/home/naynek/Desktop/Jenga-AI/threat_ner_data.jsonl"
+    data_path: "/Users/naynek/Desktop/MultiClassifier/Jenga-AI/examples/ner_synthetic_dataset_v1.jsonl"
     heads:
       - name: "ner_head"
         num_labels: 4 # This will be updated by the data processor
@@ -41,7 +41,7 @@ training:
   output_dir: "./unified_results/JengaAI_MVP"
   learning_rate: 2.0e-5
   batch_size: 4 # Smaller batch size for small dataset
-  num_epochs: 5 # Train for a few more epochs on this small dataset
+  num_epochs: 1 # Train for a few more epochs on this small dataset
   weight_decay: 0.01
   warmup_steps: 5
   eval_strategy: "epoch"

@@ -14,17 +14,34 @@ class MultiTaskModel(PreTrainedModel):
     """
     def __init__(self, config: AutoConfig, model_config: ModelConfig, task_configs: List[TaskConfig]): # Modified signature
         super().__init__(config)
-        self.encoder = AutoModel.from_pretrained(model_config.base_model)
+        from .backbones import BackboneManager
+        
+        # Determine input_dim for sequential/tabular models
+        input_dim = 128 # Default
+        for tc in task_configs:
+            if hasattr(tc, 'input_dim') and tc.input_dim is not None:
+                input_dim = tc.input_dim
+                break
+        
+        # Instantiate the modular backbone
+        self.backbone = BackboneManager.create(
+            backbone_type=model_config.backbone_type,
+            model_name=model_config.base_model,
+            config=config,
+            input_dim=input_dim
+        )
         
         # Instantiate tasks based on task_configs and TASK_REGISTRY
         self.tasks = nn.ModuleList()
+        # Use the backbone's internal encoder config for hidden size compatibility
+        hidden_size = self.backbone.encoder.config.hidden_size
+        
         for task_config in task_configs:
             if task_config.type not in TASK_REGISTRY:
                 raise ValueError(f"Unknown task type: {task_config.type}")
             
-            # Instantiate the task, passing the task_config and the encoder's hidden_size
             task_class = TASK_REGISTRY[task_config.type]
-            task_instance = task_class(config=task_config, hidden_size=self.encoder.config.hidden_size)
+            task_instance = task_class(config=task_config, hidden_size=hidden_size)
             self.tasks.append(task_instance)
 
         self.fusion = None
@@ -35,45 +52,40 @@ class MultiTaskModel(PreTrainedModel):
         """
         Returns the input embeddings layer of the model.
         """
-        return self.encoder.embeddings.word_embeddings
+        # Delegate to the backbone's encoder if it exists (standard for HF models)
+        return self.backbone.encoder.get_input_embeddings()
 
     def set_input_embeddings(self, value: nn.Module):
         """
         Sets the input embeddings layer of the model.
         """
-        self.encoder.embeddings.word_embeddings = value
+        self.backbone.encoder.set_input_embeddings(value)
 
     def forward(
         self,
-        input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
         task_id: int,
+        input_ids: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
         labels: Any = None,
-        token_type_ids: Optional[torch.Tensor] = None, # Make token_type_ids optional
+        token_type_ids: Optional[torch.Tensor] = None,
         **kwargs
     ):
         """
         The forward pass for a single task's batch.
-
-        Args:
-            input_ids: Input token ids (batch_size, seq_len).
-            attention_mask: Attention mask (batch_size, seq_len).
-            task_id: The index of the task to run.
-            labels: The labels for this task's batch.
-            token_type_ids: Token type ids (segment ids).
-
-        Returns:
-            A dictionary containing logits and loss (if labels are provided) from the specified task.
         """
-        # Pass token_type_ids only if the model supports it
-        encoder_inputs = {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
-        }
-        if token_type_ids is not None and self.encoder.config.model_type in ["bert", "xlnet", "roberta"]: # Add other models that use token_type_ids
-            encoder_inputs['token_type_ids'] = token_type_ids
+        # Collect all potential inputs
+        inputs = {}
+        if input_ids is not None: inputs['input_ids'] = input_ids
+        if attention_mask is not None: inputs['attention_mask'] = attention_mask
+        if token_type_ids is not None: inputs['token_type_ids'] = token_type_ids
+        inputs.update(kwargs)
         
-        encoder_outputs = self.encoder(**encoder_inputs, **kwargs)
+        # The backbone manager handles translating these inputs to its specific encoder
+        encoder_outputs_dict = self.backbone(**inputs)
+        
+        # Wrap the dict output into an object that task heads expect (with .last_hidden_state etc)
+        from types import SimpleNamespace
+        encoder_outputs = SimpleNamespace(**encoder_outputs_dict)
         
         # The task's get_forward_output expects input_ids, attention_mask, token_type_ids, and labels
         # It will then use the encoder outputs internally.

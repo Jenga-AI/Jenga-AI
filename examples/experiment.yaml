@@ -1,16 +1,18 @@
-project_name: "JengaAI_Unified_Framework"
+project_name: "JengaAI_Framework_QA_Model"
 
 model:
   base_model: "distilbert-base-uncased"
+  backbone_type: "text"
   dropout: 0.1
 
 tokenizer:
-  max_length: 256
+  max_length: 512
   padding: "max_length"
   truncation: true
 
 training:
-  output_dir: "./unified_results"
+  device: "cpu"
+  output_dir: "./qa_training_results_v2"
   learning_rate: 2.0e-5
   batch_size: 8
   num_epochs: 5
@@ -19,49 +21,33 @@ training:
   eval_strategy: "epoch"
   save_strategy: "epoch"
   load_best_model_at_end: true
-  metric_for_best_model: "eval_loss"
+  metric_for_best_model: "eval_QAScoring_loss"
   greater_is_better: false
   early_stopping_patience: 3
   logging:
     service: "mlflow"
-    experiment_name: "JengaAI_MVP"
+    experiment_name: "JengaAI_QA_Scoring"
 
 tasks:
-  # - name: "SentimentClassifier"
-  #   type: "single_label_classification"
-  #   data_path: "examples/sentiment_data.jsonl"
-  #   heads:
-  #     - name: "sentiment_head"
-  #       num_labels: 2 # For positive/negative sentiment
-  #       weight: 1.0
-
-  # - name: "SwahiliNER"
-  #   type: "ner"
-  #   data_path: "examples/ner_data.jsonl" # Updated path
-  #   heads:
-  #     - name: "ner_head"
-  #       num_labels: 13 # Placeholder, will be determined from data
-  #       weight: 1.0
-
   - name: "QAScoring"
     type: "multi_label_classification" # Since it's multi-head binary classification
-    data_path: "/home/naynek/Desktop/Jenga-AI/examples/data/synthetic_qa_metrics_data_v01x.json" # Updated path
+    data_path: "/Users/naynek/Desktop/MultiClassifier/Jenga-AI/examples/datasets/synthetic_qa_metrics_data_v01x.json"
     heads:
       - name: "opening"
         num_labels: 1
         weight: 1.0
       - name: "listening"
-        num_labels: 5
+        num_labels: 6 # Fixed: Should match the data length (1, 1, 1, 1, 0, 1) -> 6
         weight: 1.0
       - name: "proactiveness"
-        num_labels: 3
+        num_labels: 3 # Match (1, 1, 0)
         weight: 1.0
       - name: "resolution"
-        num_labels: 5
+        num_labels: 5 # Match (1, 1, 0, 1, 1)
         weight: 1.0
       - name: "hold"
-        num_labels: 2
+        num_labels: 2 # Match (0, 0)
         weight: 1.0
       - name: "closing"
-        num_labels: 1
+        num_labels: 1 # Match (1)
         weight: 1.0

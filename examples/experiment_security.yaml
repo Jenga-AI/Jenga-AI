@@ -1,0 +1,30 @@
+project_name: "JengaAI_Security"
+
+model:
+  base_model: "security_mlp_v1"  # Arbitrary name for the MLP
+  backbone_type: "sequential"     # KEY: Use Sequential backbone for tabular data
+  dropout: 0.1
+
+
+tasks:
+  - name: "ThreatDetection"
+    type: "anomaly_detection"  # Uses the anomaly_detection task we registered
+    data_path: "./network_traffic.json"
+    heads:
+      - name: "threat"
+        num_labels: 2  # Binary: 0=Normal, 1=Malicious
+        weight: 1.0
+
+training:
+  device: "cpu"
+  output_dir: "./security_results"
+  learning_rate: 0.001  # Higher LR for MLPs
+  batch_size: 4  # Small dataset
+  num_epochs: 20  # More epochs for tabular data
+  weight_decay: 0.01
+  warmup_steps: 10
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  metric_for_best_model: "eval_ThreatDetection_loss"
+  greater_is_better: false
+  load_best_model_at_end: true

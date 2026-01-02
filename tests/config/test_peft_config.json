@@ -1,0 +1,67 @@
+{
+    "language_pair": "en-fr",
+    "language_name": "French",
+    "model_config": {
+        "name": "Helsinki-NLP/opus-mt-en-fr",
+        "freeze_encoder": true,
+        "peft_config": {
+            "enabled": true,
+            "r": 4,
+            "lora_alpha": 16,
+            "target_modules": [
+                "q_proj",
+                "v_proj"
+            ]
+        }
+    },
+    "dataset_config": {
+        "primary_dataset": "custom",
+        "custom_datasets": [
+            {
+                "name": "dummy",
+                "path": "tests/data/dummy_translation.jsonl",
+                "weight": 1.0
+            }
+        ],
+        "validation_split": 0.2,
+        "test_split": 0.2,
+        "max_length": 128,
+        "filter_length_ratio": false
+    },
+    "training_config": {
+        "learning_rate": 2e-4,
+        "batch_size": 2,
+        "gradient_accumulation_steps": 1,
+        "num_epochs": 1,
+        "max_length": 128,
+        "save_steps": 5,
+        "eval_steps": 5,
+        "logging_steps": 1,
+        "output_dir": "tests/output/test_peft_model",
+        "tensorboard_enabled": false,
+        "mixed_precision": "no",
+        "dataloader_num_workers": 0
+    },
+    "generation_config": {
+        "max_length": 128,
+        "num_beams": 1
+    },
+    "evaluation_config": {
+        "metrics": [
+            "bleu",
+            "chrf"
+        ]
+    },
+    "mlflow_config": {
+        "tracking_uri": "http://localhost:5000",
+        "experiment_name": "test-peft-experiment",
+        "log_metrics": false
+    },
+    "deployment": {
+        "push_to_hub": false
+    },
+    "system_config": {
+        "use_cuda": false,
+        "num_workers": 0
+    }
+}
